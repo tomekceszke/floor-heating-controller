@@ -122,8 +122,7 @@ firmware/
 ├── sdkconfig                       # active build config (committed)
 ├── upload.sh                       # OTA push helper (not committed)
 ├── certs/                          # TLS certs (not committed)
-├── components/
-│   └── esp-idf-lib/                # third-party component library (submodule)
+├── components/                         # (empty — esp-idf-lib submodule removed)
 ├── http_examples/                  # REST API test scripts
 └── main/
     ├── main.c                      # app_main, main_loop

@@ -12,4 +12,3 @@
 .worktrees/
 # ESP-IDF component manager
 managed_components/
-dependencies.lock

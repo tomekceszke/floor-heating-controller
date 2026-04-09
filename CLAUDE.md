@@ -33,7 +33,7 @@ Planned new features:
 
 ### Temperature Sensor
 
-DS18B20 on 1-Wire bus (single sensor, `ds18x20` component from `esp-idf-lib`).
+DS18B20 on 1-Wire bus (single sensor, `ds18x20` from ESP Component Registry `esp-idf-lib/ds18x20`).
 `INVALID_TEMPERATURE_INDICATOR = 85.00` — DS18B20 power-on default, treated as read error.
 
 ## Toolchain & Environment
@@ -63,12 +63,11 @@ Framework sources: https://github.com/espressif/esp-idf
 ```
 firmware/
 ├── CLAUDE.md
-├── CMakeLists.txt          # project root, includes components/esp-idf-lib/components
+├── CMakeLists.txt          # project root
 ├── sdkconfig               # active build config (committed)
 ├── upload.sh               # OTA upload helper (in .gitignore — may contain credentials)
 ├── certs/                  # TLS certificates (NEVER committed — in .gitignore)
-├── components/
-│   └── esp-idf-lib/        # third-party component library (submodule)
+├── components/              # (empty — esp-idf-lib submodule removed)
 ├── http_examples/          # REST API test scripts
 └── main/
     ├── CMakeLists.txt
