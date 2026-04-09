@@ -3,6 +3,7 @@
 #include "freertos/task.h"
 
 #include "config/config.h"
+#include "notify.h"
 
 static const char *TAG = "MAIN";
 
@@ -47,9 +48,11 @@ void main_loop(void) {
         if (curr_temp > PUMP_START_TEMP && !is_pump_running()) {
             ESP_LOGI(TAG, "Pump started");
             pump_start();
+            notify_pump_started(curr_temp);
         } else if (curr_temp < PUMP_STOP_TEMP && is_pump_running()) {
             ESP_LOGI(TAG, "Pump stopped");
             pump_stop();
+            notify_pump_stopped(curr_temp);
         }
         //ESP_LOGI(TAG, "Free heap: %zu", xPortGetFreeHeapSize());
         //check_active_clients();
@@ -69,6 +72,7 @@ void app_main(void) {
     web();
     ESP_LOGI(TAG, "Setting time...");
     start_ntp_client();
+    notify_device_ready();
     ESP_LOGI(TAG, "Reset GPIO...");
     reset_gpio();
     ESP_LOGI(TAG, "Init temperature sensor...");
