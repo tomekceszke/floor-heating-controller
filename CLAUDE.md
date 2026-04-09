@@ -7,9 +7,10 @@ Logic: start pump when water temperature exceeds `PUMP_START_TEMP`, stop when it
 `PUMP_STOP_TEMP` (hysteresis). Running in production for 2+ years.
 
 Planned new features:
-- Push notifications via **ntfy.sh** (pump start/stop events, sensor errors)
 - Embedded **web UI** served as gzipped HTML (`index_html_gz`) for configuration
   (set hysteresis and start temperature at runtime)
+- Test coverage (unit/integration tests)
+- Upgrade to ESP-IDF 6.0
 
 ## Hardware
 
@@ -41,7 +42,7 @@ DS18B20 on 1-Wire bus (single sensor, `ds18x20` component from `esp-idf-lib`).
 
 Before any build/flash operation, activate the environment:
 ```bash
-source "/Users/tomek/.espressif/tools/activate_idf_v5.4.2.sh"
+source "/path/to/.espressif/tools/activate_idf_v5.4.2.sh"
 ```
 
 IDE: CLion (`.idea/` in `.gitignore`).
@@ -79,6 +80,7 @@ firmware/
     ├── web.c               # HTTP server, REST API + future embedded UI
     ├── pump.c              # GPIO relay control
     ├── temp_sensor.c       # DS18B20 init and read
+    ├── notify.c            # ntfy.sh push notifications
     └── config/
         ├── config.h        # all non-secret configuration (committed)
         ├── credentials.h   # secrets — NEVER committed
@@ -130,6 +132,19 @@ DS18B20 via `ds18x20` component. `init_sensor()` scans 1-Wire bus, retries every
 `TEMP_SENSOR_SCAN_RETRY_S = 30s` until device found. `read_temp()` returns
 `INVALID_TEMPERATURE_INDICATOR (85.0)` on error.
 
+### `notify` (notify.c)
+Push notifications via ntfy.sh. POSTs to `https://ntfy.sh/<NTFY_TOPIC>` using HTTPS with
+ESP-IDF's built-in CA bundle (`esp_crt_bundle_attach` — no cert file needed).
+Timeout: 5 s. Failures log a warning and are silently ignored — never affects main functionality.
+
+Functions:
+- `notify_device_ready()` — called once in `app_main` after NTP sync; signals successful boot + WiFi + time
+- `notify_pump_started(float temp)` — called in `main_loop` after `pump_start()`
+- `notify_pump_stopped(float temp)` — called in `main_loop` after `pump_stop()`
+
+Topic configured as `NTFY_TOPIC` in `credentials.h` (treated as secret — not committed).
+Requires `mbedtls` in `PRIV_REQUIRES` in `main/CMakeLists.txt`.
+
 ## Configuration
 
 ### config.h (committed — no secrets)
@@ -153,6 +168,7 @@ DS18B20 via `ds18x20` component. `init_sensor()` scans 1-Wire bus, retries every
 #define HEADER_AUTHORIZATION_VALUE  ""   // HTTP Authorization header value
 #define WIFI_SSID                   ""
 #define WIFI_PASS                   ""
+#define NTFY_TOPIC                  ""   // ntfy.sh topic (shared secret)
 ```
 
 Template: `config/credentials-example.h`
