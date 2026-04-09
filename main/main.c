@@ -24,9 +24,9 @@ float read_temp(void);
 
 bool is_pump_running(void);
 
-void pump_start();
+void pump_start(void);
 
-void pump_stop();
+void pump_stop(void);
 
 void check_active_clients(void);
 
@@ -45,10 +45,10 @@ void main_loop(void) {
             }
         }
         if (curr_temp > PUMP_START_TEMP && !is_pump_running()) {
-            ESP_LOGW(TAG, "Pump started");
+            ESP_LOGI(TAG, "Pump started");
             pump_start();
         } else if (curr_temp < PUMP_STOP_TEMP && is_pump_running()) {
-            ESP_LOGW(TAG, "Pump stopped");
+            ESP_LOGI(TAG, "Pump stopped");
             pump_stop();
         }
         //ESP_LOGI(TAG, "Free heap: %zu", xPortGetFreeHeapSize());

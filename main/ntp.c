@@ -16,14 +16,15 @@ void start_ntp_client(void) {
     time_t now = 0;
     time(&now);
 
-    u_short i = 0;
-    while (now < 5000 && i < NTP_MAX_ATTEMPTS) {
+    int i = 0;
+    // now < 1000000000 means before year 2001 — i.e. time not yet synced
+    while (now < 1000000000L && i < NTP_MAX_ATTEMPTS) {
         ESP_LOGI(TAG, "Getting time, attempt: %d", ++i);
         vTaskDelay((NTP_RETRY_DELAY_S * 1000) / portTICK_PERIOD_MS);
         time(&now);
     }
 
-    if (now < 5000) {
+    if (now < 1000000000L) {
         ESP_LOGE(TAG, "Couldn't get current time by NTP. Some features won't work!");
         return;
     }
@@ -37,7 +38,3 @@ void start_ntp_client(void) {
     strftime(boot_time, sizeof(boot_time), "%c", &timeinfo);
     ESP_LOGI(TAG, "The current local date/time is: %s", boot_time);
 }
-
-
-
-

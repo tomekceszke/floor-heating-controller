@@ -40,6 +40,7 @@ static bool auth(httpd_req_t *req) {
 
     if (auth_data_len > 1) {
         char *auth_data = malloc(auth_data_len);
+        if (auth_data == NULL) return false;
         const esp_err_t auth_data_header_err = httpd_req_get_hdr_value_str(
             req, HEADER_AUTHORIZATION_KEY, auth_data, auth_data_len);
         if (auth_data_header_err == ESP_OK) {
@@ -93,12 +94,7 @@ static esp_err_t su_handler(httpd_req_t *req) {
     if (!auth(req)) {
         return doAuth(req);
     }
-    const size_t length = req->content_len;
-    if (length == 0) {
-        ESP_LOGE(TAG, "Empty content");
-        return ESP_FAIL;
-    }
-    const char resp[] = "Upgrade in progres...";
+    const char resp[] = "Upgrade in progress...";
     ota();
 
     httpd_resp_set_hdr(req, "Connection", "close");
@@ -109,13 +105,9 @@ static esp_err_t reboot_handler(httpd_req_t *req) {
     if (!auth(req)) {
         return doAuth(req);
     }
-    const size_t length = req->content_len;
-    if (length == 0) {
-        ESP_LOGE(TAG, "Empty content");
-        return ESP_FAIL;
-    }
     ESP_LOGE(TAG, "(not error) Rebooting!");
     esp_restart();
+    return ESP_OK;
 }
 
 
@@ -132,14 +124,6 @@ static esp_err_t toggle_pump_handler(httpd_req_t *req) {
         return doAuth(req);
     }
 
-    const size_t length = req->content_len;
-    if (length == 0) {
-        ESP_LOGE(TAG, "Empty content");
-        return ESP_FAIL;
-    }
-
-    char buf[length];
-    httpd_req_recv(req, buf, length);
     pump_toggle();
     httpd_resp_set_hdr(req, "Connection", "close");
     return httpd_resp_send(req, "", strlen(""));
@@ -147,14 +131,14 @@ static esp_err_t toggle_pump_handler(httpd_req_t *req) {
 
 static esp_err_t get_hw_status_handler(httpd_req_t *req) {
     size_t free_bytes = esp_get_free_heap_size();
-    char data[100];
-    sprintf(data,
-            "{"
-            "\"up_since\":\"%s\","
-            "\"free_kb\":\"%d\""
+    char data[200];
+    snprintf(data, sizeof(data),
+            "{\n"
+            "   \"up_since\":\"%s\",\n"
+            "   \"free_mem_kb\":\"%u\"\n"
             "}",
             boot_time,
-            free_bytes / 1024);
+            (unsigned int)(free_bytes / 1024));
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     httpd_resp_set_hdr(req, "Connection", "close");
     httpd_resp_set_type(req, "application/json");
@@ -162,14 +146,18 @@ static esp_err_t get_hw_status_handler(httpd_req_t *req) {
 }
 
 static esp_err_t get_status_handler(httpd_req_t *req) {
-    char data[100];
-    sprintf(data,
-            "{"
-            "\"current_temp\": %0.2f,"
-            "\"is_pump_running\":%s,"
+    char data[200];
+    snprintf(data, sizeof(data),
+            "{\n"
+            "   \"current_temp\": %0.2f,\n"
+            "   \"is_pump_running\":%s,\n"
+            "   \"pump_start_temp\": %0.2f,\n"
+            "   \"pump_stop_temp\": %0.2f\n"
             "}",
             read_temp(),
-            bool2string(is_pump_running())
+            bool2string(is_pump_running()),
+            PUMP_START_TEMP,
+            PUMP_STOP_TEMP
     );
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     httpd_resp_set_hdr(req, "Connection", "close");

@@ -24,7 +24,12 @@ static void udp_init()
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(LOG_UDP_PORT);
-    inet_pton(AF_INET, LOG_UDP_IP, &server_addr.sin_addr);
+    if (inet_pton(AF_INET, LOG_UDP_IP, &server_addr.sin_addr) != 1) {
+        esp_log_write(ESP_LOG_ERROR, TAG, "Invalid UDP log IP address\n");
+        close(sock);
+        sock = -1;
+        return;
+    }
 }
 
 // Sends a log message over UDP
@@ -46,7 +51,7 @@ static int udp_log_vprintf(const char *fmt, va_list args)
     int len = vsnprintf(log_buf, sizeof(log_buf), fmt, args);
 
     if (len > 0) {
-        udp_send_log(log_buf, len);  // Send log to UDP
+        udp_send_log(log_buf, strnlen(log_buf, sizeof(log_buf)));  // Send log to UDP
         vprintf(fmt, args_copy);     // Print log locally
     }
 

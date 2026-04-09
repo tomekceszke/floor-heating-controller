@@ -1,11 +1,3 @@
-/* WiFi station Example
-
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -22,40 +14,6 @@
 #include "config/credentials.h"
 #include "config/config.h"
 
-/* The examples use WiFi configuration that you can set via project configuration menu
-
-   If you'd rather not, just change the below entries to strings with
-   the config you want - ie #define EXAMPLE_WIFI_SSID "mywifissid"
-*/
-#define EXAMPLE_ESP_MAXIMUM_RETRY  CONFIG_ESP_MAXIMUM_RETRY
-
-#if CONFIG_ESP_WPA3_SAE_PWE_HUNT_AND_PECK
-#define ESP_WIFI_SAE_MODE WPA3_SAE_PWE_HUNT_AND_PECK
-#define EXAMPLE_H2E_IDENTIFIER ""
-#elif CONFIG_ESP_WPA3_SAE_PWE_HASH_TO_ELEMENT
-#define ESP_WIFI_SAE_MODE WPA3_SAE_PWE_HASH_TO_ELEMENT
-#define EXAMPLE_H2E_IDENTIFIER CONFIG_ESP_WIFI_PW_ID
-#elif CONFIG_ESP_WPA3_SAE_PWE_BOTH
-#define ESP_WIFI_SAE_MODE WPA3_SAE_PWE_BOTH
-#define EXAMPLE_H2E_IDENTIFIER CONFIG_ESP_WIFI_PW_ID
-#endif
-#if CONFIG_ESP_WIFI_AUTH_OPEN
-#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_OPEN
-#elif CONFIG_ESP_WIFI_AUTH_WEP
-#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WEP
-#elif CONFIG_ESP_WIFI_AUTH_WPA_PSK
-#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA_PSK
-#elif CONFIG_ESP_WIFI_AUTH_WPA2_PSK
-#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA2_PSK
-#elif CONFIG_ESP_WIFI_AUTH_WPA_WPA2_PSK
-#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA_WPA2_PSK
-#elif CONFIG_ESP_WIFI_AUTH_WPA3_PSK
-#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA3_PSK
-#elif CONFIG_ESP_WIFI_AUTH_WPA2_WPA3_PSK
-#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA2_WPA3_PSK
-#elif CONFIG_ESP_WIFI_AUTH_WAPI_PSK
-#define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WAPI_PSK
-#endif
 
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
@@ -68,7 +26,6 @@ static EventGroupHandle_t s_wifi_event_group;
 
 static const char *TAG = "WIFI";
 
-// static int s_retry_num = 0;
 static int s_retry_delay = 2;
 
 static void event_handler(void* arg, esp_event_base_t event_base,
@@ -143,12 +100,6 @@ void wifi_init_sta(void)
     if (bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(TAG, "Connected to SSID: %s", WIFI_SSID);
     }
-    // else if (bits & WIFI_FAIL_BIT) {
-    //     ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s",
-    //              EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
-    // } else {
-    //     ESP_LOGE(TAG, "UNEXPECTED EVENT");
-    // }
 }
 
 void wifi(void)
