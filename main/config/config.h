@@ -25,5 +25,5 @@
 /* APP */
 #define INVALID_TEMPERATURE_INDICATOR   (85.00)
 #define SAMPLE_PERIOD_S                 60
-#define PUMP_START_TEMP                 25.0
-#define PUMP_STOP_TEMP                  22.0
+#define PUMP_START_TEMP                 (30.00)
+#define PUMP_STOP_TEMP                  (25.00)
