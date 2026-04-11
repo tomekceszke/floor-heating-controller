@@ -42,6 +42,7 @@ void main_loop(void) {
             curr_temp = read_temp();
             if (INVALID_TEMPERATURE_INDICATOR == curr_temp) {
                 ESP_LOGW(TAG, "Invalid read. Again. Ignored.");
+                notify_queue_error("Temperature sensor read failed twice in a row");
                 continue;
             }
         }
