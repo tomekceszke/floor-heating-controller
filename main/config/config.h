@@ -31,3 +31,5 @@
 #define SAMPLE_PERIOD_S                 60
 #define PUMP_START_TEMP                 (30.00)
 #define PUMP_STOP_TEMP                  (25.00)
+#define MAINTENANCE_INTERVAL_S          (7 * 24 * 3600)  // 168 hours — weekly
+#define MAINTENANCE_RUN_DURATION_S      60               // 1 minute
