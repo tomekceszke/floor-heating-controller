@@ -8,6 +8,7 @@ idf_component_register(SRCS "main.c"
         "pump.c"
         "temp_sensor.c"
         "notify.c"
+        "maintenance.c"
         PRIV_REQUIRES spi_flash
         mbedtls
         esp_wifi
