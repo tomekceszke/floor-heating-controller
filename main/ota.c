@@ -1,10 +1,12 @@
 #include <esp_err.h>
+#include <stdio.h>
 
 #include "esp_log.h"
 #include "esp_http_client.h"
 #include "esp_https_ota.h"
 
 #include "config/config.h"
+#include "notify.h"
 
 static const char *TAG = "OTA";
 extern const uint8_t server_cert_pem_start[] asm("_binary_ota_server_cert_15_pem_start");
@@ -18,7 +20,7 @@ static esp_err_t remove_bin_file(void) {
     };
     esp_http_client_handle_t client = esp_http_client_init(&config);
     if (client == NULL) {
-        ESP_LOGE(TAG, "Failed to init HTTP client for bin removal");
+        ESP_LOGW(TAG, "Failed to init HTTP client for bin removal");
         return ESP_FAIL;
     }
     esp_err_t err = esp_http_client_perform(client);
@@ -38,14 +40,21 @@ void ota(void)
         .http_config = &config,
     };
     ESP_LOGI(TAG, "Attempting to download update from %s", config.url);
+
+    notify_error_suppress(true);
     esp_err_t ret = esp_https_ota(&ota_config);
+    notify_error_suppress(false);
+
     if (ret == ESP_OK) {
         if (remove_bin_file() != ESP_OK) {
             ESP_LOGW(TAG, "Failed to delete firmware file from server");
         }
-        ESP_LOGI(TAG, "OTA Succeed, Rebooting...");
+        ESP_LOGI(TAG, "OTA succeeded, rebooting...");
         esp_restart();
     } else {
-        ESP_LOGE(TAG, "Firmware upgrade failed");
+        char msg[80];
+        snprintf(msg, sizeof(msg), "OTA failed: %s", esp_err_to_name(ret));
+        ESP_LOGW(TAG, "%s", msg);
+        notify_queue_error(msg);
     }
 }

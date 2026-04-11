@@ -1,6 +1,7 @@
 idf_component_register(SRCS "main.c"
         "wifi.c"
-        "udp_logging.c"
+        "log_dispatch.c"
+        "log_udp.c"
         "ota.c"
         "ntp.c"
         "web.c"
@@ -15,6 +16,7 @@ idf_component_register(SRCS "main.c"
         esp_https_ota
         nvs_flash
         esp_driver_gpio
+        esp_timer
         ds18x20
         INCLUDE_DIRS "include"
         "config"

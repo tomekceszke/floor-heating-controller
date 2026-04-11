@@ -22,6 +22,10 @@
 #define PUMP_CTRL_OUT_GPIO             GPIO_NUM_16
 #define TEMP_SENSOR_SCAN_RETRY_S       30
 
+/* NOTIFICATIONS */
+#define NOTIFY_ERROR_COOLDOWN_S         3600    // suppress duplicate errors within this window
+#define NOTIFY_ERROR_QUEUE_SIZE         4       // error notification queue depth (drops when full)
+
 /* APP */
 #define INVALID_TEMPERATURE_INDICATOR   (85.00)
 #define SAMPLE_PERIOD_S                 60

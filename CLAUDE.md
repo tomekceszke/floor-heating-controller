@@ -55,6 +55,30 @@ idf.py flash monitor
 idf.py monitor
 ```
 
+### Serial Port
+
+CP2102 USB-UART bridge: `/dev/cu.usbserial-0001`
+
+Device IP: `192.168.11.241` (DHCP range reserved: 192.168.11.240–254 for ESP32 devices)
+
+Set once per session to avoid repeating `-p`:
+```bash
+export ESPPORT=/dev/cu.usbserial-0001
+```
+
+### Entering Download Mode (required before each flash)
+
+The board has two buttons: **IO0** (Boot) and **EN** (Reset).
+
+1. Press and hold **IO0**
+2. Press and release **EN**
+3. Release **IO0**
+
+ESP32 enters download mode. Then run `idf.py flash`. After flashing, press **EN** to boot the new firmware.
+
+> Note: during boot without firmware (or boot loop), GPIO_NUM_16 may be in undefined state
+> causing the relay to click repeatedly — this is expected behavior before valid firmware runs.
+
 Documentation: https://docs.espressif.com/projects/esp-idf/en/stable/esp32/index.html
 Framework sources: https://github.com/espressif/esp-idf
 
@@ -141,7 +165,8 @@ Functions:
 - `notify_pump_started(float temp)` — called in `main_loop` after `pump_start()`
 - `notify_pump_stopped(float temp)` — called in `main_loop` after `pump_stop()`
 
-Topic configured as `NTFY_TOPIC` in `credentials.h` (treated as secret — not committed).
+Topics configured in `credentials.h` (treated as secrets — not committed). Setting a topic to `""`
+disables it silently — no HTTP attempt, no warning log. Both topics empty → no queue or task created.
 Requires `mbedtls` in `PRIV_REQUIRES` in `main/CMakeLists.txt`.
 
 ## Configuration
@@ -167,7 +192,8 @@ Requires `mbedtls` in `PRIV_REQUIRES` in `main/CMakeLists.txt`.
 #define HEADER_AUTHORIZATION_VALUE  ""   // HTTP Authorization header value
 #define WIFI_SSID                   ""
 #define WIFI_PASS                   ""
-#define NTFY_TOPIC                  ""   // ntfy.sh topic (shared secret)
+#define NTFY_TOPIC                  ""   // ntfy.sh topic for pump/boot notifications; "" to disable
+#define NTFY_ERROR_TOPIC            ""   // ntfy.sh topic for error notifications; "" to disable
 ```
 
 Template: `config/credentials-example.h`
