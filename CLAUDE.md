@@ -102,6 +102,7 @@ firmware/
     ├── ntp.c               # SNTP time sync, sets TZ to CET/CEST (Poland)
     ├── web.c               # HTTP server, REST API + future embedded UI
     ├── pump.c              # GPIO relay control
+    ├── maintenance.c       # weekly pump exercise run (anti-seize, non-blocking state machine)
     ├── temp_sensor.c       # DS18B20 init and read
     ├── notify.c            # ntfy.sh push notifications
     └── config/
@@ -150,6 +151,17 @@ Commented-out `main_handler` / `index_html_gz` — planned embedded UI entry poi
 GPIO relay control. `reset_gpio()` configures GPIO_NUM_16 as input/output with pull-up.
 Pump state read via `gpio_get_level(PUMP_CTRL_OUT_GPIO)` — HIGH = running.
 
+### `maintenance` (maintenance.c)
+Non-blocking state machine preventing pump impeller seizure during idle periods (summer).
+Tracks last pump activity via FreeRTOS ticks. Triggers a `MAINTENANCE_RUN_DURATION_S`-second
+run when pump has been idle for `MAINTENANCE_INTERVAL_S` and `curr_temp < PUMP_STOP_TEMP`.
+Called once per `main_loop()` tick — never blocks.
+
+Functions:
+- `maintenance_check(bool pump_was_active, float curr_temp)` — called each loop tick
+- `is_maintenance_running()` — used by `web.c` for `/api/status`
+- `maintenance_get_last_pump_started_at()` — returns `time_t` of last pump start (0 = never since boot)
+
 ### `temp_sensor` (temp_sensor.c)
 DS18B20 via `ds18x20` component. `init_sensor()` scans 1-Wire bus, retries every
 `TEMP_SENSOR_SCAN_RETRY_S = 30s` until device found. `read_temp()` returns
@@ -177,6 +189,8 @@ Requires `mbedtls` in `PRIV_REQUIRES` in `main/CMakeLists.txt`.
 |----------|-------|-------------|
 | `PUMP_START_TEMP` | 30.0 °C | Start pump above this |
 | `PUMP_STOP_TEMP` | 25.0 °C | Stop pump below this (hysteresis) |
+| `MAINTENANCE_INTERVAL_S` | 604800 s (7 days) | Idle interval before maintenance run |
+| `MAINTENANCE_RUN_DURATION_S` | 60 s | Duration of each maintenance run |
 | `SAMPLE_PERIOD_S` | 60 s | Main loop interval |
 | `INVALID_TEMPERATURE_INDICATOR` | 85.0 | DS18B20 error sentinel |
 | `OTA_URL` | https://192.168.11.15:8070/... | Local OTA server |
