@@ -4,13 +4,13 @@
 #include "esp_log.h"
 #include "config/config.h"
 #include "maintenance.h"
+#include "notify.h"
 
 static const char *TAG = "MAINTENANCE";
 
-/* Forward declarations — defined in pump.c and notify.c */
+/* Forward declarations — defined in pump.c */
 void pump_start(void);
 void pump_stop(void);
-void notify_maintenance_started(void);
 
 /* Converts seconds to FreeRTOS ticks */
 #define SEC_TO_TICKS(s) ((TickType_t)((s) * 1000u / portTICK_PERIOD_MS))

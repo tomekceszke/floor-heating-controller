@@ -160,3 +160,8 @@ void notify_device_ready(float temp, bool pump_running)
              temp, pump_running ? "ON" : "OFF");
     send_notification_to(NTFY_TOPIC, "Device ready", msg);
 }
+
+void notify_maintenance_started(void)
+{
+    send_notification_to(NTFY_TOPIC, "Maintenance run", "Weekly pump exercise run started");
+}
