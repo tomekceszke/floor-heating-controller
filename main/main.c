@@ -53,7 +53,7 @@ void main_loop(void) {
             ESP_LOGI(TAG, "Pump started");
             pump_start();
             notify_pump_started(curr_temp);
-        } else if (curr_temp < PUMP_STOP_TEMP && is_pump_running()) {
+        } else if (curr_temp < PUMP_STOP_TEMP && is_pump_running() && !is_maintenance_running()) {
             ESP_LOGI(TAG, "Pump stopped");
             pump_stop();
             notify_pump_stopped(curr_temp);

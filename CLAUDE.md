@@ -138,7 +138,7 @@ Current REST API:
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/api/status` | no | JSON: current_temp, is_pump_running, start/stop temps |
+| GET | `/api/status` | no | JSON: current_temp, is_pump_running, is_maintenance_running, last_pump_started_at |
 | GET | `/api/is-pump-running` | no | `"1"` or `"0"` |
 | POST | `/api/toggle-pump` | yes | Toggle pump relay |
 | POST | `/admin/su` | yes | Trigger OTA update |
