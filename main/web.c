@@ -1,8 +1,10 @@
+#include <time.h>
 #include <esp_log.h>
 #include <esp_system.h>
 #include "esp_http_server.h"
 #include "config.h"
 #include "credentials.h"
+#include "maintenance.h"
 
 static const char *HEADER_AUTHORIZATION_KEY = "Authorization";
 static const char *TAG = "WEB";
@@ -146,18 +148,28 @@ static esp_err_t get_hw_status_handler(httpd_req_t *req) {
 }
 
 static esp_err_t get_status_handler(httpd_req_t *req) {
-    char data[200];
+    char last_started[32];
+    time_t last_started_at = maintenance_get_last_pump_started_at();
+    if (last_started_at == 0) {
+        snprintf(last_started, sizeof(last_started), "never");
+    } else {
+        struct tm timeinfo;
+        localtime_r(&last_started_at, &timeinfo);
+        strftime(last_started, sizeof(last_started), "%Y-%m-%d %H:%M:%S", &timeinfo);
+    }
+
+    char data[256];
     snprintf(data, sizeof(data),
             "{\n"
             "   \"current_temp\": %0.2f,\n"
-            "   \"is_pump_running\":%s,\n"
-            "   \"pump_start_temp\": %0.2f,\n"
-            "   \"pump_stop_temp\": %0.2f\n"
+            "   \"is_pump_running\": %s,\n"
+            "   \"is_maintenance_running\": %s,\n"
+            "   \"last_pump_started_at\": \"%s\"\n"
             "}",
             read_temp(),
             bool2string(is_pump_running()),
-            PUMP_START_TEMP,
-            PUMP_STOP_TEMP
+            bool2string(is_maintenance_running()),
+            last_started
     );
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     httpd_resp_set_hdr(req, "Connection", "close");
