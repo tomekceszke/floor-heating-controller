@@ -33,7 +33,9 @@ void maintenance_check(bool pump_was_active, float curr_temp)
 
     if (s_running) {
         if ((now - s_run_start_ticks) >= SEC_TO_TICKS(MAINTENANCE_RUN_DURATION_S)) {
-            pump_stop();
+            if (!pump_was_active) {
+                pump_stop();
+            }
             ESP_LOGI(TAG, "Maintenance run complete");
             s_last_active_ticks = now;
             s_running = false;
