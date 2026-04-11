@@ -3,6 +3,7 @@
 #include "freertos/task.h"
 
 #include "config/config.h"
+#include "maintenance.h"
 #include "notify.h"
 #include "wifi.h"
 #include "log_dispatch.h"
@@ -57,6 +58,7 @@ void main_loop(void) {
             pump_stop();
             notify_pump_stopped(curr_temp);
         }
+        maintenance_check(is_pump_running(), curr_temp);
         //ESP_LOGI(TAG, "Free heap: %zu", xPortGetFreeHeapSize());
         //check_active_clients();
         xTaskDelayUntil(&last_wake_time, (SAMPLE_PERIOD_S * 1000) / portTICK_PERIOD_MS);
