@@ -68,7 +68,7 @@ static bool dedup_should_send(const char *msg)
 
 static void send_notification_to(const char *topic, const char *title, const char *message)
 {
-    if (topic == NULL || topic[0] == '\0') return;
+    if (topic[0] == '\0') return;
     char url[64];
     snprintf(url, sizeof(url), "https://ntfy.sh/%s", topic);
 

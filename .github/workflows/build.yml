@@ -1,0 +1,30 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create CI credentials
+        run: cp main/config/credentials-example.h main/config/credentials.h
+
+      - name: Create dummy OTA certificate
+        run: |
+          openssl req -x509 -newkey rsa:2048 -keyout /tmp/ci-key.pem \
+            -out certs/ota_server_cert_15.pem \
+            -days 1 -nodes -subj "/CN=ci-build"
+
+      - name: Build
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v5.4.2
+          target: esp32

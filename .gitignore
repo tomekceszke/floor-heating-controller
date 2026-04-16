@@ -1,15 +1,16 @@
 /.idea
+/.air
+/.claude
 /.cache
 /build
 /cmake-build-debug/
 /certs/*
-/main/include/credentials.h
 /http_examples/.http.env.json
 /http_examples/*.private.env.json
 /upload.sh
 .DS_Store
 **/.DS_Store
+/.clangd
 .worktrees/
-.air/
 # ESP-IDF component manager
 managed_components/
