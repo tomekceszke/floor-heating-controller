@@ -5,6 +5,7 @@
 /build
 /cmake-build-debug/
 /certs/*
+!/certs/.gitkeep
 /http_examples/.http.env.json
 /http_examples/*.private.env.json
 /upload.sh
