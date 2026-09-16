@@ -85,9 +85,11 @@ Framework sources: https://github.com/espressif/esp-idf
 ## Project Structure
 
 ```
+CLAUDE.md
+README.md
+.github/workflows/build.yml  # CI build (path: firmware)
 firmware/
-├── CLAUDE.md
-├── CMakeLists.txt          # project root
+├── CMakeLists.txt          # ESP-IDF project root
 ├── sdkconfig               # active build config (committed)
 ├── upload.sh               # OTA upload helper (in .gitignore — may contain credentials)
 ├── certs/                  # TLS certificates (NEVER committed — in .gitignore)
@@ -235,5 +237,5 @@ Template: `config/credentials-example.h`
 ## TODO (cross-project, 2026-09-15)
 
 - [x] CI: `.github/workflows/build.yml` exists; keep it green.
-- [ ] Move the copied modules (wifi, log, ntp, ota, notify, health, auth, api) to the shared framework **home-idf** (`~/dev/home-idf`, public, pinned by tag in `main/idf_component.yml`), including `hi_secret` obfuscated credentials (`tools/obfuscate.py`) and the Wi-Fi reconnect fix (no `vTaskDelay` in the event handler).
+- [ ] Move the copied modules (wifi, log, ntp, ota, notify, health, auth, api) to the shared framework **home-idf** (`~/dev/home-controllers/home-idf`, public, pinned by tag in `main/idf_component.yml`), including `hi_secret` obfuscated credentials (`tools/obfuscate.py`) and the Wi-Fi reconnect fix (no `vTaskDelay` in the event handler).
 - [ ] When the web UI is added: use the unified sign-in page from home-idf (planned).

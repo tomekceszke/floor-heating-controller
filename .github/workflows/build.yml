@@ -15,9 +15,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create CI credentials
+        working-directory: firmware
         run: cp main/config/credentials-example.h main/config/credentials.h
 
       - name: Create dummy OTA certificate
+        working-directory: firmware
         run: |
           openssl req -x509 -newkey rsa:2048 -keyout /tmp/ci-key.pem \
             -out certs/ota_server_cert_15.pem \
@@ -28,3 +30,4 @@ jobs:
         with:
           esp_idf_version: v5.4.2
           target: esp32
+          path: firmware
