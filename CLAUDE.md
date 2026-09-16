@@ -231,3 +231,9 @@ Template: `config/credentials-example.h`
 - Stability over features. This device runs unattended in production.
 - There is a second identical board available for testing — destructive tests are acceptable on it.
 - `PUMP_START_TEMP` / `PUMP_STOP_TEMP` currently require reflash to change — planned: runtime-configurable via web UI.
+
+## TODO (cross-project, 2026-09-15)
+
+- [x] CI: `.github/workflows/build.yml` exists; keep it green.
+- [ ] Move the copied modules (wifi, log, ntp, ota, notify, health, auth, api) to the shared framework **home-idf** (`~/dev/home-idf`, public, pinned by tag in `main/idf_component.yml`), including `hi_secret` obfuscated credentials (`tools/obfuscate.py`) and the Wi-Fi reconnect fix (no `vTaskDelay` in the event handler).
+- [ ] When the web UI is added: use the unified sign-in page from home-idf (planned).
