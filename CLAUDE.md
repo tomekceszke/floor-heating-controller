@@ -33,7 +33,7 @@ product: UI, notifications and history must never weaken it.**
 |---|---|
 | Module | ESP32-WROOM-32E, 4 MB flash (DIO, 40 MHz) |
 | PCB | ESP32_Relay_AC X1 V1.1 (303E32AC111), CP2102 USB-UART (`/dev/cu.usbserial-0001`) |
-| Production | `192.168.11.241` |
+| Production | `192.168.11.247`, MAC `98:CD:AC:4E:75:54` |
 
 | GPIO | Function |
 |---|---|
@@ -105,7 +105,7 @@ The legacy `/api/toggle-pump`, `/api/is-pump-running` and unauthenticated `/api/
 ### UI work
 
 ```sh
-../home-idf/tools/dev_proxy.py 192.168.11.241 --page firmware/web/app.html --name fh-controller
+../home-idf/tools/dev_proxy.py 192.168.11.247 --page firmware/web/app.html --name fh-controller
 ```
 Same layout as water and gate (shared-main-view decision 2026-09-16): wordmark + status, headline, three numbers
 (°C water, time in the current state, pumping today), main view (heat source → thermometer → pump → floor loop),

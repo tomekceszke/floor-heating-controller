@@ -47,7 +47,7 @@
 
 /* HTTPD */
 #define HTTPD_ALLOWED_HOSTS             { DEVICE_HOSTNAME, DEVICE_HOSTNAME ".lan" }
-#define APP_URL                         "http://192.168.11.241/"
+#define APP_URL                         "http://192.168.11.247/"
 
 /* HEALTH */
 #define HEALTH_VERIFY_TIMEOUT_S         300     // new image: control task alive + WiFi within this, else rollback

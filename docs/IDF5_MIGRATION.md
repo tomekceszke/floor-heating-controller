@@ -47,11 +47,11 @@ temperature control, circulating is safe at any water temperature.
 1. Credentials: `firmware/main/config/credentials.h` needs `AUTH_PASSWORD_*` (web sign-in) in addition to the legacy
    values; the admin header stays the same, so the legacy `/admin/su` and the migrator commit use the same value.
 2. `tools/build_release.sh`; record both sha256 values.
-3. Preflight: `GET http://192.168.11.241/api/status` (legacy: temperature, pump state), note the time.
+3. Preflight: `GET http://192.168.11.247/api/status` (legacy: temperature, pump state), note the time.
 4. `scp releases/floor-heating-migrator.bin 192.168.11.15:apps/ota-server/builds/floor-heating-controller.bin`,
    start the OTA server on .15, `nc -ul 1344` for the log.
 5. Legacy `POST /admin/su` with the Authorization header (runs synchronously, the device restarts into the migrator).
-6. `GET http://192.168.11.241/migrator` until stage `ready`; read the bootloader version line. **Stop if any check fails.**
+6. `GET http://192.168.11.247/migrator` until stage `ready`; read the bootloader version line. **Stop if any check fails.**
 7. `scp releases/floor-heating-controller.bin 192.168.11.15:apps/ota-server/builds/floor-heating-controller.bin`
    **before** the commit.
 8. `POST /migrator/commit` with the admin header; firmware 2.x follows within a minute.
@@ -61,4 +61,5 @@ temperature control, circulating is safe at any water temperature.
 
 ## Production log
 
-Not migrated yet.
+Not migrated yet. 2026-09-17 10:5x read-only check: legacy answers on 192.168.11.247 (the docs said .241), up since
+2026-08-27 18:45, water 20.4 °C, pump off, last pump start 2026-09-10 18:47.
