@@ -1,241 +1,125 @@
-# floor-heating-controller — CLAUDE.md
+# floor-heating-controller
 
-## Project Overview
+ESP32 controller for the floor heating circulation pump: a DS18B20 on the supply pipe, a relay for the pump. The pump
+runs above the start threshold and stops below the stop threshold. In production for 2+ years. **Pump control is the
+product: UI, notifications and history must never weaken it.**
 
-Production ESP32 firmware for a floor heating water pump controller.
-Logic: start pump when water temperature exceeds `PUMP_START_TEMP`, stop when it drops below
-`PUMP_STOP_TEMP` (hysteresis). Running in production for 2+ years.
+## Status
 
-Planned new features:
-- Embedded **web UI** served as gzipped HTML (`index_html_gz`) for configuration
-  (set hysteresis and start temperature at runtime)
-- Test coverage (unit/integration tests)
-- Upgrade to ESP-IDF 6.0
+- **Firmware 2.0.0 is built, not on the device yet.** Production still runs the legacy firmware (own copies of
+  wifi/log/ota/ntp/notify/web, IDF 5.4.x bootloader, stock `partitions_two_ota`, no rollback).
+- 2.0.0 moves to home-idf (v0.1.12) and to the water/gate partition layout, so it needs the one-shot migrator:
+  procedure and log in `docs/IDF5_MIGRATION.md`. Owner decision 2026-09-17: migrate production directly, without a
+  spare-board rehearsal (the relay board has USB for recovery).
+- Pushes of this repo and of home-idf v0.1.12 wait for the push window (see global rules); CI pins home-idf v0.1.12.
+
+## Behaviour (design rules for every change)
+
+- The control task (`control.c`, core 1, task watchdog) reads the sensor every 5 s and is the only code that switches
+  the relay. It never calls the network and never waits on a queue; events and notifications are non-blocking.
+- Decisions live in `control_logic.c` (no ESP-IDF includes, host-tested), priority from highest:
+  1. **overheat**: at or above `critical` the pump runs and a manual stop is dropped (clears 2 °C below critical);
+  2. **manual** start/stop for 1 min–12 h (app chips 30 min / 1 h / 4 h), then back to automatic; RAM only;
+  3. **sensor failure**: 3 bad reads in a row (error or 85.0 °C) and the pump runs as a fail-safe until a good read;
+  4. **hysteresis**: on above `start`, off below `stop`;
+  5. **maintenance**: 60 s anti-seize run after 7 days idle while below `stop`; it stops itself.
+- Thresholds are set from the app and stored in NVS (`fh_settings`), clamped: start 20–60 °C, stop ≥ 10 °C and
+  ≤ start − 2, critical ≥ start + 5 and ≤ 80. Defaults 30 / 25 / 45 (`config.h`).
+- A reboot returns to automatic control; the pump is off for the first read (< 1 s).
 
 ## Hardware
 
 | Item | Value |
-|------|-------|
-| Module | ESP32-WROOM-32E |
-| Flash | 4 MB |
-| WiFi | 802.11 b/g/n (2.4 GHz) |
-| Bluetooth | BT/BLE (unused) |
-| PCB | ESP32_Relay_AC X1 V1.1 (303E32AC111) — custom relay board |
-| Test board | identical second unit available for testing |
+|---|---|
+| Module | ESP32-WROOM-32E, 4 MB flash (DIO, 40 MHz) |
+| PCB | ESP32_Relay_AC X1 V1.1 (303E32AC111), CP2102 USB-UART (`/dev/cu.usbserial-0001`) |
+| Production | `192.168.11.241` |
 
-### GPIO
+| GPIO | Function |
+|---|---|
+| 4 | DS18B20 (1-Wire) |
+| 16 | Pump relay, HIGH = on |
+| 23 | LED (unused) |
 
-| GPIO | Direction | Function |
-|------|-----------|----------|
-| GPIO_NUM_4 | IN | DS18B20 temperature sensor (1-Wire) |
-| GPIO_NUM_16 | OUT | Pump relay control (HIGH = pump ON) |
-| GPIO_NUM_23 | OUT | LED (currently unused/commented out) |
+Download mode for USB flashing: hold **IO0**, press and release **EN**, release **IO0**; press **EN** after flashing.
+Relay clicks during a boot loop without valid firmware are expected.
 
-### Temperature Sensor
+## Firmware (`firmware/`)
 
-DS18B20 on 1-Wire bus (single sensor, `ds18x20` from ESP Component Registry `esp-idf-lib/ds18x20`).
-`INVALID_TEMPERATURE_INDICATOR = 85.00` — DS18B20 power-on default, treated as read error.
-
-## Toolchain & Environment
-
-**ESP-IDF version: 5.4.2**
-
-Before any build/flash operation, activate the environment:
-```bash
-source "/path/to/.espressif/tools/activate_idf_v5.4.2.sh"
+```sh
+firmware/build.sh                          # idf.py build; uses ../home-idf (sibling checkout) when present
+HOME_IDF_FROM_GIT=1 firmware/build.sh      # against the pinned tag (main/idf_component.yml)
+cmake -S firmware/test -B build-test && cmake --build build-test && ctest --test-dir build-test   # host tests
+tools/build_release.sh                     # firmware + migrator into releases/ with sha256
 ```
+- `sdkconfig` is generated from `sdkconfig.defaults` (never `idf.py set-target`). `partitions.csv` is the water/gate
+  layout: nvs/otadata/phy as in two_ota, ota_0 2M, ota_1 1.875M at the legacy ota_1 offset, coredump.
+- A home-idf change needs a tag, a bump in `firmware/main/idf_component.yml` **and** `migrator/main/idf_component.yml`,
+  deleting `dependencies.lock`, then `HOME_IDF_FROM_GIT=1 firmware/build.sh` to regenerate it.
+- Setup: `cp firmware/main/config/credentials-example.h firmware/main/config/credentials.h`; values may be
+  `obf1:` strings from `home-idf/tools/obfuscate.py`; the web password hash comes from `home-idf/tools/hash_password.py`
+  (empty hash = sign-in disabled). `firmware/certs/ota_server_cert_15.pem` is the OTA server's trust anchor.
 
-IDE: CLion (`.idea/` in `.gitignore`).
-
-Build commands (after activation):
-```bash
-idf.py build
-idf.py flash
-idf.py flash monitor
-idf.py monitor
-```
-
-### Serial Port
-
-CP2102 USB-UART bridge: `/dev/cu.usbserial-0001`
-
-Device IP: `192.168.11.241` (DHCP range reserved: 192.168.11.240–254 for ESP32 devices)
-
-Set once per session to avoid repeating `-p`:
-```bash
-export ESPPORT=/dev/cu.usbserial-0001
-```
-
-### Entering Download Mode (required before each flash)
-
-The board has two buttons: **IO0** (Boot) and **EN** (Reset).
-
-1. Press and hold **IO0**
-2. Press and release **EN**
-3. Release **IO0**
-
-ESP32 enters download mode. Then run `idf.py flash`. After flashing, press **EN** to boot the new firmware.
-
-> Note: during boot without firmware (or boot loop), GPIO_NUM_16 may be in undefined state
-> causing the relay to click repeatedly — this is expected behavior before valid firmware runs.
-
-Documentation: https://docs.espressif.com/projects/esp-idf/en/stable/esp32/index.html
-Framework sources: https://github.com/espressif/esp-idf
-
-## Project Structure
+### Layout
 
 ```
-CLAUDE.md
-README.md
-.github/workflows/build.yml  # CI build (path: firmware)
-firmware/
-├── CMakeLists.txt          # ESP-IDF project root
-├── sdkconfig               # active build config (committed)
-├── upload.sh               # OTA upload helper (in .gitignore — may contain credentials)
-├── certs/                  # TLS certificates (NEVER committed — in .gitignore)
-├── components/              # (empty — esp-idf-lib submodule removed)
-├── http_examples/          # REST API test scripts
-└── main/
-    ├── CMakeLists.txt
-    ├── main.c              # app_main, main_loop
-    ├── wifi.c              # WiFi STA with exponential backoff reconnect
-    ├── udp_logging.c       # UDP log forwarding (mirrors to serial + UDP)
-    ├── ota.c               # HTTPS OTA from local server, deletes bin after success
-    ├── ntp.c               # SNTP time sync, sets TZ to CET/CEST (Poland)
-    ├── web.c               # HTTP server, REST API + future embedded UI
-    ├── pump.c              # GPIO relay control
-    ├── maintenance.c       # weekly pump exercise run (anti-seize, non-blocking state machine)
-    ├── temp_sensor.c       # DS18B20 init and read
-    ├── notify.c            # ntfy.sh push notifications
-    └── config/
-        ├── config.h        # all non-secret configuration (committed)
-        ├── credentials.h   # secrets — NEVER committed
-        └── credentials-example.h  # template for credentials.h
+main/
+  main.c           boot: NVS → settings → events → control task → health → log → WiFi/notify/NTP/OTA/auth/httpd
+  control_logic.c  pure decisions (hysteresis, manual, overheat, sensor fail-safe, maintenance), host-tested
+  control.c        control task, relay, runtime/starts counters, manual commands
+  temp_sensor.c    DS18B20 read, rescans the bus after failures
+  pump.c           relay GPIO
+  settings.c       thresholds in NVS, clamped
+  events.c         RAM ring of 50 events, ntfy mapping
+  history.c        24 h of one-minute samples in RAM (temperature + pump bit)
+  api.c            routes on the home-idf HTTP server
+web/               app.html (Live / History / Settings on the home-idf app shell), manifest, icon
+test/              host tests for control_logic
+migrator/          one-shot legacy → 2.x image (home-idf hi_migrator), keeps the pump on while it runs
 ```
 
-## Modules
+### Notifications (ntfy, two topics as in the other controllers)
 
-### `wifi` (wifi.c)
-WiFi STA mode. Exponential backoff on disconnect (doubles delay up to `WIFI_RETRY_DELAY_S = 60s`).
-Blocks `app_main` until connected. Credentials from `credentials.h`.
+- `NTFY_TOPIC`: automatic start/stop (default priority), manual start/stop and end of a manual run (low),
+  maintenance run (low), boot (min). The end of a maintenance run is not sent.
+- `NTFY_ERROR_TOPIC`: overheat reached / over, sensor failure / recovery, every `ESP_LOGE` line, unexpected resets
+  (home-idf, one-hour dedup).
 
-### `udp_logging` (udp_logging.c)
-Overrides `esp_log_set_vprintf` to forward all logs via UDP to `LOG_UDP_IP:LOG_UDP_PORT`
-(currently `192.168.11.15:1344`) while also printing locally to serial. Buffer: 256 bytes per message.
+### HTTP API (port 80)
 
-### `ota` (ota.c)
-HTTPS OTA from `OTA_URL` (`https://192.168.11.15:8070/floor-heating-controller.bin`).
-Uses embedded cert `certs/ota_server_cert_15.pem`. On success: deletes the bin via HTTP DELETE, then reboots.
-Triggered at boot and via `POST /admin/su`.
+Common routes come from home-idf: `/`, `/api/session`, `/api/login`, `/api/logout`, `/api/reboot`, `/api/ota`,
+`/admin/su`, `/admin/reboot`, `/admin/hw-status`. Pump routes:
 
-### `ntp_client` (ntp.c)
-SNTP sync against `pool.ntp.org` + Polish servers. Timezone: `CET-1CEST,M3.5.0,M10.5.0/3`.
-Sets global `boot_time[64]` string used in `/admin/hw-status` response.
+| Method | Path | Guard | Description |
+|---|---|---|---|
+| GET | `/api/status` | session | `pump`, `temp`, `today`, `since_boot`, `settings` (+ limits), `system` (with `bootloader_idf`) |
+| GET | `/api/events` | session | last 50 events (pump, overheat, sensor, manual_end) |
+| GET | `/api/history` | session | `{period_s, newest, newest_age_s, t:[0.1 °C or null], p:"0101…"}`, oldest first, chunked |
+| POST | `/api/pump` | mutation | `{state:"start"\|"stop", minutes}` or `{state:"auto"}`; 409 `overheat` for a stop while overheated |
+| POST | `/api/settings` | mutation | partial `{start_c, stop_c, critical_c}`, clamped |
+| POST | `/admin/pump` | `Authorization` header | same body as `/api/pump` |
+| GET | `/admin/status` | `Authorization` header | same as `/api/status` |
 
-### `web` (web.c)
-`esp_http_server` on default port 80. Authorization via `Authorization` header
-(value defined in `credentials.h` as `HEADER_AUTHORIZATION_VALUE`).
+The legacy `/api/toggle-pump`, `/api/is-pump-running` and unauthenticated `/api/status` are gone (nothing used them).
 
-Current REST API:
+### UI work
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/api/status` | no | JSON: current_temp, is_pump_running, is_maintenance_running, last_pump_started_at |
-| GET | `/api/is-pump-running` | no | `"1"` or `"0"` |
-| POST | `/api/toggle-pump` | yes | Toggle pump relay |
-| POST | `/admin/su` | yes | Trigger OTA update |
-| POST | `/admin/reboot` | yes | Restart device |
-| GET | `/admin/hw-status` | no | JSON: up_since, free_mem_kb |
-
-Commented-out `main_handler` / `index_html_gz` — planned embedded UI entry point.
-
-### `pump` (pump.c)
-GPIO relay control. `reset_gpio()` configures GPIO_NUM_16 as input/output with pull-up.
-Pump state read via `gpio_get_level(PUMP_CTRL_OUT_GPIO)` — HIGH = running.
-
-### `maintenance` (maintenance.c)
-Non-blocking state machine preventing pump impeller seizure during idle periods (summer).
-Tracks last pump activity via FreeRTOS ticks. Triggers a `MAINTENANCE_RUN_DURATION_S`-second
-run when pump has been idle for `MAINTENANCE_INTERVAL_S` and `curr_temp < PUMP_STOP_TEMP`.
-Called once per `main_loop()` tick — never blocks.
-
-Functions:
-- `maintenance_check(bool pump_was_active, float curr_temp)` — called each loop tick
-- `is_maintenance_running()` — used by `web.c` for `/api/status`
-- `maintenance_get_last_pump_started_at()` — returns `time_t` of last pump start (0 = never since boot)
-
-### `temp_sensor` (temp_sensor.c)
-DS18B20 via `ds18x20` component. `init_sensor()` scans 1-Wire bus, retries every
-`TEMP_SENSOR_SCAN_RETRY_S = 30s` until device found. `read_temp()` returns
-`INVALID_TEMPERATURE_INDICATOR (85.0)` on error.
-
-### `notify` (notify.c)
-Push notifications via ntfy.sh. POSTs to `https://ntfy.sh/<NTFY_TOPIC>` using HTTPS with
-ESP-IDF's built-in CA bundle (`esp_crt_bundle_attach` — no cert file needed).
-Timeout: 5 s. Failures log a warning and are silently ignored — never affects main functionality.
-
-Functions:
-- `notify_device_ready()` — called once in `app_main` after NTP sync; signals successful boot + WiFi + time
-- `notify_pump_started(float temp)` — called in `main_loop` after `pump_start()`
-- `notify_pump_stopped(float temp)` — called in `main_loop` after `pump_stop()`
-
-Topics configured in `credentials.h` (treated as secrets — not committed). Setting a topic to `""`
-disables it silently — no HTTP attempt, no warning log. Both topics empty → no queue or task created.
-Requires `mbedtls` in `PRIV_REQUIRES` in `main/CMakeLists.txt`.
-
-## Configuration
-
-### config.h (committed — no secrets)
-
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `PUMP_START_TEMP` | 30.0 °C | Start pump above this |
-| `PUMP_STOP_TEMP` | 25.0 °C | Stop pump below this (hysteresis) |
-| `MAINTENANCE_INTERVAL_S` | 604800 s (7 days) | Idle interval before maintenance run |
-| `MAINTENANCE_RUN_DURATION_S` | 60 s | Duration of each maintenance run |
-| `SAMPLE_PERIOD_S` | 60 s | Main loop interval |
-| `INVALID_TEMPERATURE_INDICATOR` | 85.0 | DS18B20 error sentinel |
-| `OTA_URL` | https://192.168.11.15:8070/... | Local OTA server |
-| `LOG_UDP_IP` | 192.168.11.15 | UDP log receiver |
-| `LOG_UDP_PORT` | 1344 | UDP log port |
-| `TEMP_SENSOR_IN_GPIO` | GPIO_NUM_4 | 1-Wire pin |
-| `PUMP_CTRL_OUT_GPIO` | GPIO_NUM_16 | Relay pin |
-| `LED_OUT_GPIO` | GPIO_NUM_23 | LED pin |
-
-### credentials.h (NEVER committed)
-
-```c
-#define HEADER_AUTHORIZATION_VALUE  ""   // HTTP Authorization header value
-#define WIFI_SSID                   ""
-#define WIFI_PASS                   ""
-#define NTFY_TOPIC                  ""   // ntfy.sh topic for pump/boot notifications; "" to disable
-#define NTFY_ERROR_TOPIC            ""   // ntfy.sh topic for error notifications; "" to disable
+```sh
+../home-idf/tools/dev_proxy.py 192.168.11.241 --page firmware/web/app.html --name fh-controller
 ```
+Same layout as water and gate (shared-main-view decision 2026-09-16): wordmark + status, headline, three numbers
+(°C water, time in the current state, pumping today), main view (heat source → thermometer → pump → floor loop),
+latest events, dock with the swipe (start/stop for the chosen duration) and chips. English.
 
-Template: `config/credentials-example.h`
+## Infrastructure
 
-## Git & Security Rules
+- OTA server `https://192.168.11.15:8070`, file `floor-heating-controller.bin` (`~/apps/ota-server` on .15).
+- UDP logs `192.168.11.15:1344` (`nc -ul 1344`).
 
-- Respect `.gitignore` at all times.
-- **NEVER** commit or stage: `certs/`, `main/config/credentials.h`, `upload.sh`,
-  any `*.private.*` files, `http_examples/.http.env.json`.
-- Before suggesting any `git add .` or equivalent — verify against `.gitignore` explicitly.
-- Never include secrets in code, comments, or log messages.
+## Rules
 
-## Developer Notes
-
-- Primary language: Java developer with 20+ years experience. C is secondary.
-- **Always flag** potential memory issues: uninitialized pointers, missing `free()` after `malloc()`,
-  stack-allocated buffers passed across task boundaries, buffer overflows.
-- Use `snprintf` instead of `sprintf` — flag any existing `sprintf` usage as a bug candidate.
-- `char buf[length]` where `length` comes from HTTP request is a VLA — risky, flag it.
-- Prefer stack allocation over heap for this embedded context.
-- Stability over features. This device runs unattended in production.
-- There is a second identical board available for testing — destructive tests are acceptable on it.
-- `PUMP_START_TEMP` / `PUMP_STOP_TEMP` currently require reflash to change — planned: runtime-configurable via web UI.
-
-## TODO (cross-project, 2026-09-15)
-
-- [x] CI: `.github/workflows/build.yml` exists; keep it green.
-- [ ] Move the copied modules (wifi, log, ntp, ota, notify, health, auth, api) to the shared framework **home-idf** (`~/dev/home-controllers/home-idf`, public, pinned by tag in `main/idf_component.yml`), including `hi_secret` obfuscated credentials (`tools/obfuscate.py`) and the Wi-Fi reconnect fix (no `vTaskDelay` in the event handler).
-- [ ] When the web UI is added: use the unified sign-in page from home-idf (planned).
+- **Never** commit `credentials.h`, `certs/*`, `upload.sh`, `*.private.*`, `releases/`. Run `git check-ignore` before `git add`.
+- Commit messages clean, no AI attribution.
+- Anything writing the bootloader or partition table needs the owner's approval at that moment.
+- `snprintf` only; no VLAs sized from request data; flag leaks and stack buffers crossing tasks.
+- Keep `control_logic.c` free of ESP-IDF includes and cover changes with host tests.

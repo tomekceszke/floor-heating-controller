@@ -1,0 +1,13 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  control-logic:
+    name: Pump control host tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S firmware/test -B build-test && cmake --build build-test && ctest --test-dir build-test --output-on-failure

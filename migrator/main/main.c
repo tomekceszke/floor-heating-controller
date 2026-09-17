@@ -1,0 +1,54 @@
+#include "driver/gpio.h"
+#include "esp_log.h"
+
+#include "hi_log.h"
+#include "hi_migrator.h"
+#include "hi_ota.h"
+#include "hi_secret.h"
+#include "hi_system.h"
+#include "hi_wifi.h"
+
+#include "blobs_manifest.h"
+#include "config/config.h"
+#include "config/credentials.h"
+
+extern const uint8_t bl_start[] asm("_binary_bootloader_bin_start");
+extern const uint8_t bl_end[] asm("_binary_bootloader_bin_end");
+extern const uint8_t pt_start[] asm("_binary_partition_table_bin_start");
+extern const uint8_t pt_end[] asm("_binary_partition_table_bin_end");
+extern const char ota_cert_pem_start[] asm("_binary_ota_server_cert_15_pem_start");
+
+static const uint8_t BL_SHA256[32] = BLOB_BOOTLOADER_SHA256;
+static const uint8_t PT_SHA256[32] = BLOB_PARTITION_TABLE_SHA256;
+
+void app_main(void)
+{
+    // Pump on for the whole migration: without temperature control, circulating is safe at any water temperature.
+    // Firmware 2.x takes over with its own reading within seconds of booting.
+    gpio_set_level(GPIO_PUMP, 1);
+    gpio_set_direction(GPIO_PUMP, GPIO_MODE_INPUT_OUTPUT);
+    gpio_set_level(GPIO_PUMP, 1);
+
+    static char wifi_pass[65];
+    static char admin_header[128];
+    hi_secret_reveal(WIFI_PASS, wifi_pass, sizeof(wifi_pass));
+    hi_secret_reveal(HEADER_AUTHORIZATION_VALUE, admin_header, sizeof(admin_header));
+
+    hi_nvs_init(NULL);
+    hi_log_init(&(hi_log_config_t) {.udp_ip = LOG_UDP_IP, .udp_port = LOG_UDP_PORT});
+    hi_wifi_start(&(hi_wifi_config_t) {.ssid = WIFI_SSID, .password = wifi_pass, .hostname = DEVICE_HOSTNAME});
+    hi_ota_init(&(hi_ota_config_t) {.url = OTA_URL, .cert_pem = ota_cert_pem_start, .delete_after = true});
+    hi_wifi_wait_connected(60000);
+
+    hi_migrator_run(&(hi_migrator_config_t) {
+        .name = "floor-heating-migrator",
+        .bootloader = bl_start,
+        .bootloader_len = bl_end - bl_start,
+        .bootloader_sha256 = BL_SHA256,
+        .partition_table = pt_start,
+        .partition_table_len = pt_end - pt_start,
+        .partition_table_sha256 = PT_SHA256,
+        .ota1_offset = 0x210000,
+        .admin_header_value = admin_header,
+    });
+}

@@ -1,26 +1,42 @@
-### GET HW Status
+### Status (scripts: Authorization header)
+GET http://{{host}}/admin/status
+Authorization: {{auth}}
+
+### Hardware status (no auth)
 GET http://{{host}}/admin/hw-status
-Connection: close
+
+### Start the pump for 30 minutes, then back to automatic control
+POST http://{{host}}/admin/pump
+Authorization: {{auth}}
+Content-Type: application/json
+
+{"state": "start", "minutes": 30}
+
+### Stop the pump for 60 minutes (refused with 409 while overheated)
+POST http://{{host}}/admin/pump
+Authorization: {{auth}}
+Content-Type: application/json
+
+{"state": "stop", "minutes": 60}
+
+### Back to automatic control
+POST http://{{host}}/admin/pump
+Authorization: {{auth}}
+Content-Type: application/json
+
+{"state": "auto"}
+
+### OTA update check
+POST http://{{host}}/admin/su
+Authorization: {{auth}}
 
 ### Reboot
-
 POST http://{{host}}/admin/reboot
 Authorization: {{auth}}
 
-1
+### Migrator (only while floor-heating-migrator runs): checks and stage
+GET http://{{host}}/migrator
 
-### GET Status
-
-GET http://{{host}}/api/status
-
-### Toggle pump
-
-POST http://{{host}}/api/toggle-pump
+### Migrator: write the partition table and bootloader (READY stage only)
+POST http://{{host}}/migrator/commit
 Authorization: {{auth}}
-Connection: close
-
-1
-
-### Is pump running
-
-GET http://{{host}}/api/is-pump-running
