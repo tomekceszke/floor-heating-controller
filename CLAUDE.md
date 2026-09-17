@@ -114,6 +114,11 @@ Same layout as water and gate (shared-main-view decision 2026-09-16): wordmark +
 (°C water, time in the current state, pumping today), main view (heat source → thermometer → pump → floor loop),
 latest events, dock with the swipe (start/stop for the chosen duration) and chips. English.
 
+README screenshots (`docs/img/app-*.png`, 390×844 at 2x) come from `tools/screenshots.py`: it serves the page with
+mocked `/api/*` data and shoots it in headless Chrome (which clamps the window to 500 px, so the page is zoomed
+back to a phone and the image scaled down). Regenerate them after UI changes; `--keep-server` opens the same mock
+in a browser.
+
 ## Infrastructure
 
 - OTA server `https://192.168.11.15:8070`, file `floor-heating-controller.bin` (`~/apps/ota-server` on .15).
