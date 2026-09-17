@@ -61,5 +61,22 @@ temperature control, circulating is safe at any water temperature.
 
 ## Production log
 
-Not migrated yet. 2026-09-17 10:5x read-only check: legacy answers on 192.168.11.247 (the docs said .241), up since
-2026-08-27 18:45, water 20.4 °C, pump off, last pump start 2026-09-10 18:47.
+2026-09-17 10:5x read-only check: legacy answers on 192.168.11.247 (the docs said .241), up since 2026-08-27 18:45,
+water 20.4 °C, pump off, last pump start 2026-09-10 18:47.
+
+Migrated 2026-09-17 evening. Release built from commit `9c971c1` + home-idf v0.1.12 (local checkout = the tag) with
+production credentials and the new ntfy topics: firmware 2.0.0 `d8d83cdeaa1c974b…` (950 848 B), migrator
+`d6662bf072ef29d4…` (831 200 B).
+
+| Time (CEST) | Step |
+|---|---|
+| 20:23:11 | Preflight: legacy up, water 21.19 °C, pump off, last pump start 18:48:03; OTA server on .15 running |
+| 20:23:33 | Migrator published as `floor-heating-controller.bin`, legacy `POST /admin/su` downloaded it (20:23:34) and sent DELETE (20:23:51) |
+| 20:24:13 | `GET /migrator` stage `ready` from 0x210000, all checks ok, bootloader in flash built with ESP-IDF v5.4.1-1-g2f7dcd862a |
+| 20:24:25 | Firmware 2.0.0 published, then `POST /migrator/commit`: partition table and bootloader written |
+| 20:24:52 | Migrator downloaded firmware 2.0.0 into ota_0 and sent DELETE |
+| 20:24:53 | 2.0.0 boots: `partition` ota_0, `idf` v5.4.2, `bootloader_idf` v5.4.2, `pending_verify` false, water 21.4 °C, pump off (`auto_cold`) |
+| 20:25:01 | "Started" on the normal ntfy topic |
+
+Verified after the health window: 2.0.0 still on ota_0, no unexpected reset, temperature 21.7 °C, pump following the
+thresholds (start 30 °C / stop 25 °C / critical 45 °C). Left to check with the owner: web sign-in from the app.

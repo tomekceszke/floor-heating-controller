@@ -6,12 +6,12 @@ product: UI, notifications and history must never weaken it.**
 
 ## Status
 
-- **Firmware 2.0.0 is built, not on the device yet.** Production still runs the legacy firmware (own copies of
-  wifi/log/ota/ntp/notify/web, IDF 5.4.x bootloader, stock `partitions_two_ota`, no rollback).
-- 2.0.0 moves to home-idf (v0.1.12) and to the water/gate partition layout, so it needs the one-shot migrator:
-  procedure and log in `docs/IDF5_MIGRATION.md`. Owner decision 2026-09-17: migrate production directly, without a
-  spare-board rehearsal (the relay board has USB for recovery).
-- Pushes of this repo and of home-idf v0.1.12 wait for the push window (see global rules); CI pins home-idf v0.1.12.
+- **Production runs firmware 2.0.0** (2026-09-17 20:24, sha256 `d8d83cde…`, home-idf v0.1.12): migrated from the
+  legacy firmware over the air with the one-shot migrator, so the device now has the 5.4.2 bootloader, the water/gate
+  partition layout (ota_0 2M / ota_1 1.875M / coredump) and native rollback. Procedure and log in
+  `docs/IDF5_MIGRATION.md`; no spare-board rehearsal (owner decision, the relay board has USB for recovery).
+- Updates from now on: `tools/build_release.sh`, publish `releases/floor-heating-controller.bin` as
+  `floor-heating-controller.bin` on the OTA server, `POST /admin/su` (or the Device tab).
 
 ## Behaviour (design rules for every change)
 
@@ -79,6 +79,9 @@ migrator/          one-shot legacy → 2.x image (home-idf hi_migrator), keeps t
 ```
 
 ### Notifications (ntfy, two topics as in the other controllers)
+
+Topics follow the owner's convention `<prefix>-floor-heating-controller` and `<prefix>-floor-heating-controller-error`
+(set 2026-09-17, obfuscated in `credentials.h`).
 
 - `NTFY_TOPIC`: automatic start/stop (default priority), manual start/stop and end of a manual run (low),
   maintenance run (low), boot (min). The end of a maintenance run is not sent.
