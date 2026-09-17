@@ -79,4 +79,4 @@ production credentials and the new ntfy topics: firmware 2.0.0 `d8d83cdeaa1c974b
 | 20:25:01 | "Started" on the normal ntfy topic |
 
 Verified after the health window: 2.0.0 still on ota_0, no unexpected reset, temperature 21.7 °C, pump following the
-thresholds (start 30 °C / stop 25 °C / critical 45 °C). Left to check with the owner: web sign-in from the app.
+thresholds (start 30 °C / stop 25 °C / critical 45 °C). Owner confirmed app sign-in works; OTA server on .15 stopped.
