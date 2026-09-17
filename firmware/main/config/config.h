@@ -1,35 +1,58 @@
 #pragma once
 
-/* WIFI */
-#define WIFI_RETRY_DELAY_S              60
-#define WIFI_MAXIMUM_RETRY              5
+#include "driver/gpio.h"
 
-/* NTP */
-#define NTP_MAX_ATTEMPTS                3
-#define NTP_RETRY_DELAY_S               5
+/* DEVICE */
+#define DEVICE_HOSTNAME                 "fh-controller"
+
+/* GPIO */
+#define GPIO_TEMP_SENSOR                GPIO_NUM_4      // DS18B20, 1-Wire
+#define GPIO_PUMP                       GPIO_NUM_16     // relay, HIGH = pump on
+#define GPIO_LED                        GPIO_NUM_23     // unused
+
+/* CONTROL (the control task never needs the network) */
+#define CONTROL_READ_PERIOD_S           5       // DS18B20 conversion takes ~750 ms
+#define CONTROL_TASK_CORE               1       // WiFi/lwIP live on core 0
+#define CONTROL_TASK_PRIORITY           10
+#define SENSOR_FAIL_READS               3       // consecutive bad reads before the fail-safe (pump on)
+#define SENSOR_POWER_ON_VALUE_X10       850     // DS18B20 power-on value, treated as a failed read
+#define MAINTENANCE_INTERVAL_S          (7 * 24 * 3600)     // idle this long -> anti-seize run
+#define MAINTENANCE_RUN_S               60
+#define MANUAL_MIN_S                    60
+#define MANUAL_MAX_S                    (12 * 3600)
+
+/* THRESHOLDS (0.1 °C; defaults and hard bounds, set from the app) */
+#define START_DEFAULT_X10               300
+#define STOP_DEFAULT_X10                250
+#define CRITICAL_DEFAULT_X10            450
+#define START_MIN_X10                   200
+#define START_MAX_X10                   600
+#define STOP_MIN_X10                    100
+#define HYSTERESIS_MIN_X10              20      // stop <= start - 2 °C
+#define CRITICAL_MARGIN_MIN_X10         50      // critical >= start + 5 °C
+#define CRITICAL_MAX_X10                800
+
+/* EVENTS / HISTORY (RAM only) */
+#define EVENTS_RING_SIZE                50
+#define HISTORY_PERIOD_S                60
+#define HISTORY_SAMPLES                 1440    // 24 h
 
 /* OTA */
-#define OTA_URL                          "https://192.168.11.15:8070/floor-heating-controller.bin"
+#define OTA_FILE                        "floor-heating-controller.bin"
+#define OTA_URL                         "https://192.168.11.15:8070/" OTA_FILE
 
 /* LOGGING */
 #define LOG_UDP_IP                      "192.168.11.15"
 #define LOG_UDP_PORT                    1344
 
+/* HTTPD */
+#define HTTPD_ALLOWED_HOSTS             { DEVICE_HOSTNAME, DEVICE_HOSTNAME ".lan" }
+#define APP_URL                         "http://192.168.11.241/"
 
-/* GPIO */
-#define TEMP_SENSOR_IN_GPIO            GPIO_NUM_4
-#define LED_OUT_GPIO                   GPIO_NUM_23
-#define PUMP_CTRL_OUT_GPIO             GPIO_NUM_16
-#define TEMP_SENSOR_SCAN_RETRY_S       30
+/* HEALTH */
+#define HEALTH_VERIFY_TIMEOUT_S         300     // new image: control task alive + WiFi within this, else rollback
+#define HEALTH_MAX_UNVERIFIED_BOOTS     3
+#define HEALTH_STATS_LOG_PERIOD_S       900
 
-/* NOTIFICATIONS */
-#define NOTIFY_ERROR_COOLDOWN_S         3600    // suppress duplicate errors within this window
-#define NOTIFY_ERROR_QUEUE_SIZE         4       // error notification queue depth (drops when full)
-
-/* APP */
-#define INVALID_TEMPERATURE_INDICATOR   (85.00)
-#define SAMPLE_PERIOD_S                 60
-#define PUMP_START_TEMP                 (30.00)
-#define PUMP_STOP_TEMP                  (25.00)
-#define MAINTENANCE_INTERVAL_S          (7 * 24 * 3600)  // 168 hours — weekly
-#define MAINTENANCE_RUN_DURATION_S      60               // 1 minute
+/* NOTIFY */
+#define NOTIFY_ERROR_COOLDOWN_S         3600

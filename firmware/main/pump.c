@@ -1,42 +1,31 @@
-#include <esp_err.h>
-#include <esp_log.h>
 #include "driver/gpio.h"
-#include "config/config.h"
+#include "esp_log.h"
 
+#include "config/config.h"
+#include "pump.h"
 
 static const char *TAG = "PUMP";
 
-void reset_gpio(void) {
-    gpio_config_t config = {0};
-    config.intr_type = GPIO_INTR_DISABLE;
-    config.mode = GPIO_MODE_INPUT_OUTPUT;
-    config.pin_bit_mask = (1ULL << PUMP_CTRL_OUT_GPIO);
-    config.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    config.pull_up_en = GPIO_PULLUP_ENABLE;
-    if (gpio_config(&config) != ESP_OK) {
-        ESP_LOGE(TAG, "GPIO config failed.");
-    }
+void pump_init(void)
+{
+    gpio_set_level(GPIO_PUMP, 0);
+    gpio_config_t config = {
+        .pin_bit_mask = 1ULL << GPIO_PUMP,
+        .mode = GPIO_MODE_INPUT_OUTPUT,     // level read back for the status
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    if (gpio_config(&config) != ESP_OK) ESP_LOGE(TAG, "Pump GPIO config failed");
+    gpio_set_level(GPIO_PUMP, 0);
 }
 
-bool is_pump_running(void) {
-    return gpio_get_level(PUMP_CTRL_OUT_GPIO);
+void pump_set(bool on)
+{
+    gpio_set_level(GPIO_PUMP, on ? 1 : 0);
 }
 
-void pump_start(void) {
-    gpio_set_level(PUMP_CTRL_OUT_GPIO, 1);
-    //gpio_set_level(LED_OUT_GPIO, 0);
-}
-
-void pump_stop(void) {
-    gpio_set_level(PUMP_CTRL_OUT_GPIO, 0);
-    //gpio_set_level(LED_OUT_GPIO, 1);
-}
-
-esp_err_t pump_toggle() {
-    if (is_pump_running()) {
-        pump_stop();
-    } else {
-        pump_start();
-    }
-    return ESP_OK;
+bool pump_is_on(void)
+{
+    return gpio_get_level(GPIO_PUMP) == 1;
 }

@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1b1411">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="@HI_APP_NAME@">
+<link rel="icon" href="/apple-touch-icon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>@HI_APP_NAME@</title>
+<style>
+@HI_APP_CSS@
+:root {
+  --bg: #1b1411; --panel: #28201b; --line: #47372d; --text: #f3e9e2; --muted: #b39d90;
+  --accent: #f08a4b; --on-accent: #1b1210; --warn: #e9c046; --bad: #ff5e57;
+  --cold: #6fa8c7; --heat: var(--cold);
+}
+body.warm { --heat: var(--accent); }
+body.critical { --heat: var(--bad); }
+
+/* Main view: heat source -> supply with thermometer -> pump -> floor loop -> return */
+.loop { display: flex; flex-direction: column; justify-content: center; }
+.scheme { display: block; width: 100%; height: auto; overflow: visible; }
+.scheme .src { fill: var(--panel); stroke: var(--line); stroke-width: 2; }
+.scheme .flame { fill: var(--heat); opacity: .85; transition: fill .6s; }
+.scheme .floor { fill: color-mix(in srgb, var(--panel) 70%, transparent); stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 4 5; }
+.scheme .label { fill: var(--muted); font: 12px var(--font); }
+.scheme .reading { fill: var(--text); font: 600 15px var(--round); }
+.scheme .tube { fill: none; stroke: var(--line); stroke-width: 11; stroke-linecap: round; stroke-linejoin: round; }
+.scheme .water { fill: none; stroke: var(--heat); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; opacity: .3; transition: stroke .6s, opacity .6s; }
+.scheme .stream { fill: none; stroke: var(--heat); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 2 14; opacity: 0; transition: stroke .6s; }
+.running .scheme .water { opacity: .55; }
+.running .scheme .stream { opacity: 1; animation: run 1.4s linear infinite; }
+.scheme .thermo { fill: var(--bg); stroke: var(--heat); stroke-width: 2; transition: stroke .6s; }
+.scheme .thermo-bulb { fill: var(--heat); transition: fill .6s; }
+.scheme .pump { fill: #33271f; stroke: var(--line); stroke-width: 2; transition: stroke .4s; }
+.running .scheme .pump { stroke: var(--accent); }
+.scheme .impeller { fill: var(--muted); transform-box: fill-box; transform-origin: center; }
+.running .scheme .impeller { fill: var(--accent); animation: spin 1s linear infinite; }
+.scheme .hub { fill: var(--bg); }
+.fault .scheme .thermo { stroke: var(--bad); stroke-dasharray: 3 3; }
+@keyframes run { to { stroke-dashoffset: -32; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .running .scheme .stream, .running .scheme .impeller { animation: none; }
+}
+
+/* Thresholds and manual countdown under the scheme */
+.meta .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; color: var(--muted); font-size: 14px; }
+.meta strong { color: var(--text); font: 600 16px var(--round); }
+.track { height: 6px; border-radius: 3px; background: var(--panel); margin-top: 7px; overflow: hidden; }
+.fill { height: 100%; width: 0; background: var(--accent); border-radius: 3px; transition: width 1s linear; }
+
+/* 24 h chart */
+.chart { display: block; width: 100%; height: auto; margin: 4px 0 6px; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .guide { stroke-width: 1; stroke-dasharray: 4 4; }
+.chart .guide.start { stroke: var(--accent); }
+.chart .guide.stop { stroke: var(--cold); }
+.chart .guide.critical { stroke: var(--bad); }
+.chart .on { fill: var(--accent); opacity: .16; }
+.chart .line { fill: none; stroke: var(--text); stroke-width: 1.8; stroke-linejoin: round; }
+.chart text { fill: var(--muted); font: 11px var(--font); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--muted); font-size: 13px; }
+.legend i { display: inline-block; width: 14px; height: 0; border-top: 2px dashed; vertical-align: middle; margin-right: 5px; }
+.legend .sw { width: 12px; height: 10px; border: 0; background: var(--accent); opacity: .35; }
+</style>
+</head>
+<body>
+<main>
+  <section id="live" class="tab">
+    <header class="top">@HI_APP_WORDMARK@<span class="pill" id="pill"><span class="dot"></span><span>Connecting</span></span></header>
+    <h1 class="head" id="headline">Connecting…</h1>
+    <div id="banner" class="banner" role="status" hidden></div>
+
+    <div class="stats">
+      <div><span class="num" id="temp">–</span><span class="unit">°C water</span></div>
+      <div><span class="num" id="stateDur">0</span><span class="unit" id="stateUnit">min idle</span></div>
+      <div><span class="num" id="today">0</span><span class="unit" id="todayUnit">min today</span></div>
+    </div>
+
+    <div class="loop main-view">
+      <svg class="scheme" viewBox="0 0 360 190" aria-hidden="true">
+        <rect class="floor" x="198" y="70" width="152" height="84" rx="10"/>
+        <text class="label" x="340" y="148" text-anchor="end">floor</text>
+        <path class="tube" d="M50 50 H336 V82 H214 V106 H336 V130 H214 V172 H50"/>
+        <path class="water" d="M50 50 H336 V82 H214 V106 H336 V130 H214 V172 H50"/>
+        <path class="stream" d="M50 50 H336 V82 H214 V106 H336 V130 H214 V172 H50"/>
+        <rect class="src" x="6" y="28" width="46" height="164" rx="10"/>
+        <path class="flame" d="M29 126 c-10 -8 -9 -20 0 -32 c1 8 6 10 8 16 c2 -4 1 -8 0 -11 c7 6 9 16 3 24 c-3 4 -7 5 -11 3 z"/>
+        <text class="label" x="29" y="178" text-anchor="middle">heat</text>
+        <g>
+          <rect class="thermo" x="80" y="14" width="10" height="30" rx="5"/>
+          <circle class="thermo-bulb" cx="85" cy="50" r="8"/>
+          <text class="reading" id="svgTemp" x="98" y="30">–</text>
+        </g>
+        <circle class="pump" cx="160" cy="50" r="26"/>
+        <g class="impeller">
+          <path d="M160 50 L160 30 A20 20 0 0 1 176 38 Z"/>
+          <path d="M160 50 L177 60 A20 20 0 0 1 158 70 Z"/>
+          <path d="M160 50 L143 60 A20 20 0 0 1 144 38 Z"/>
+        </g>
+        <circle class="hub" cx="160" cy="50" r="5"/>
+        <text class="label" x="160" y="96" text-anchor="middle">pump</text>
+      </svg>
+
+      <div class="meta">
+        <div class="row"><span id="thresholds">–</span><span id="modeText"></span></div>
+        <div id="manualBar" hidden>
+          <div class="row" style="margin-top:8px"><span id="manualText">Manual</span><strong id="manualLeft">–</strong></div>
+          <div class="track"><div class="fill" id="manualFill"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="sec" id="latestTitle" hidden>Latest <button type="button" class="link" data-goto="history">All</button></h2>
+    <ul class="events" id="latest"></ul>
+  </section>
+
+  <section id="history" class="tab" hidden>
+    <header class="top">@HI_APP_WORDMARK@</header>
+    <h1 class="page">History</h1>
+    <div class="stats">
+      <div><span class="num" id="hToday">0</span><span class="unit" id="hTodayUnit">h pumping today</span></div>
+      <div><span class="num" id="hStarts">0</span><span class="unit">starts today</span></div>
+      <div><span class="num" id="hBoot">0</span><span class="unit" id="hBootUnit">h since restart</span></div>
+    </div>
+    <h2 class="sec">Water temperature, 24 h</h2>
+    <svg class="chart" id="chart" viewBox="0 0 360 170" role="img" aria-label="Water temperature over the last 24 hours"></svg>
+    <div class="legend">
+      <span><i class="sw"></i>pump on</span>
+      <span><i style="color:var(--accent)"></i>start</span>
+      <span><i style="color:var(--cold)"></i>stop</span>
+      <span><i style="color:var(--bad)"></i>critical</span>
+    </div>
+    <p class="note" id="chartNote" hidden>No readings yet. The chart fills in one point per minute and starts over after a restart.</p>
+    <h2 class="sec">Events</h2>
+    <ul class="events" id="events"></ul>
+    <p class="note" id="eventsEmpty" hidden>Nothing has happened since the controller restarted.</p>
+  </section>
+
+  <section id="settings" class="tab" hidden>
+    <header class="top">@HI_APP_WORDMARK@</header>
+    <h1 class="page">Settings</h1>
+
+    <h2 class="sec">Automatic control</h2>
+    <ul class="list">
+      <li>
+        <div class="k">Start above<small>Pump turns on</small></div>
+        <div class="stepper">
+          <button type="button" data-set="start_c" data-step="-0.5" aria-label="Lower start temperature">−</button>
+          <output id="startOut">–</output>
+          <button type="button" data-set="start_c" data-step="0.5" aria-label="Higher start temperature">+</button>
+        </div>
+      </li>
+      <li>
+        <div class="k">Stop below<small>Pump turns off</small></div>
+        <div class="stepper">
+          <button type="button" data-set="stop_c" data-step="-0.5" aria-label="Lower stop temperature">−</button>
+          <output id="stopOut">–</output>
+          <button type="button" data-set="stop_c" data-step="0.5" aria-label="Higher stop temperature">+</button>
+        </div>
+      </li>
+      <li>
+        <div class="k">Critical<small>Pump forced on, alert sent</small></div>
+        <div class="stepper">
+          <button type="button" data-set="critical_c" data-step="-0.5" aria-label="Lower critical temperature">−</button>
+          <output id="criticalOut">–</output>
+          <button type="button" data-set="critical_c" data-step="0.5" aria-label="Higher critical temperature">+</button>
+        </div>
+      </li>
+    </ul>
+    <p class="note" id="rulesNote">Stop stays at least 2 °C below start, critical at least 5 °C above it. At the critical temperature the pump runs even if you stopped it by hand. If the sensor fails three times in a row, the pump runs as a precaution.</p>
+    <p class="note" id="maintenanceNote"></p>
+
+    <h2 class="sec">Device</h2>
+    <ul class="list" id="deviceList"></ul>
+    <h2 class="sec">Maintenance</h2>
+    <ul class="list">
+      <li><div class="k">Firmware update<small id="otaText">Installs a new version if one is published</small></div><button class="plain" type="button" id="otaBtn">Check</button></li>
+      <li><div class="k">Restart<small>The pump follows the temperature again within seconds</small></div><button class="plain" type="button" id="rebootBtn">Restart</button></li>
+      <li><div class="k">Sign out</div><button class="plain danger" type="button" id="logoutBtn">Sign out</button></li>
+    </ul>
+  </section>
+</main>
+
+<div class="dock" id="dock">
+  <div id="pumpSwipe"></div>
+  <div class="chips">
+    <button class="chip" type="button" data-minutes="30" aria-pressed="false">30 min</button>
+    <button class="chip" type="button" data-minutes="60" aria-pressed="true">1 h</button>
+    <button class="chip" type="button" data-minutes="240" aria-pressed="false">4 h</button>
+    <button class="chip" type="button" id="autoChip" hidden>Back to auto</button>
+  </div>
+</div>
+
+@HI_APP_TABS@
+
+<script>
+"use strict";
+@HI_APP_JS@
+
+let state = null;
+let timer = 0;
+let busy = false;
+let minutes = 60;
+
+const deg = c => c == null ? "–" : c.toFixed(1);
+const degU = c => c == null ? "–" : `${c.toFixed(1)} °C`;
+// Big number + unit for a duration: seconds under a minute, minutes under an hour, then hours with one decimal
+function durParts(s, suffix) {
+  if (s < 60) return [String(Math.max(0, Math.round(s))), `s ${suffix}`];
+  if (s < 3600) return [String(Math.floor(s / 60)), `min ${suffix}`];
+  return [(s / 3600).toFixed(s < 36000 ? 1 : 0), `h ${suffix}`];
+}
+const put = (numId, unitId, [n, u]) => { $(numId).textContent = n; $(unitId).textContent = u; };
+
+const tabs = hi.tabs(name => {
+  if (name === "history") { loadEvents(); loadHistory(); }
+  refresh();
+});
+
+const swipe = hi.swipe($("pumpSwipe"), {
+  text: "Slide to start pump", kind: "",
+  canStart: () => !busy && !!state && !(state.pump.on && state.temp.overheat),
+  onFire: () => command(state.pump.on ? "stop" : "start"),
+});
+
+function headline(s) {
+  const p = s.pump, t = s.temp;
+  if (t.overheat) return ["Overheat: pump forced on", "bad", "Overheat"];
+  if (p.reason === "sensor_fail") return ["Sensor failure: pump on to be safe", "bad", "Sensor error"];
+  if (p.manual === "start") return ["Pump running by hand", "flow", "Manual"];
+  if (p.manual === "stop") return ["Pump stopped by hand", "warn", "Manual"];
+  if (p.reason === "maintenance") return ["Maintenance run", "flow", "Maintenance"];
+  if (p.on) return ["Pump running", "flow", "Running"];
+  return [t.c == null ? "Waiting for the sensor" : "Pump idle", "ok", "Idle"];
+}
+
+function renderLive(s) {
+  const p = s.pump, t = s.temp, st = s.settings;
+  document.body.classList.toggle("running", p.on);
+  document.body.classList.toggle("warm", t.c != null && t.c > st.stop_c);
+  document.body.classList.toggle("critical", t.overheat);
+  document.body.classList.toggle("fault", t.sensor_failed || t.c == null);
+
+  const [text, kind, pill] = headline(s);
+  $("headline").textContent = text;
+  hi.pill($("pill"), kind, pill);
+
+  $("temp").textContent = deg(t.c);
+  $("svgTemp").textContent = t.sensor_failed ? "no reading" : t.c == null ? "–" : `${t.c.toFixed(1)}°`;
+  put("stateDur", "stateUnit", durParts(p.state_s, p.on ? "running" : "idle"));
+  put("today", "todayUnit", durParts(s.today.runtime_s, "today"));
+
+  $("thresholds").textContent = `On above ${st.start_c} °C, off below ${st.stop_c} °C`;
+  $("modeText").textContent = p.manual === "none" ? "auto" : "manual";
+  const manual = p.manual !== "none";
+  $("manualBar").hidden = !manual;
+  if (manual) {
+    $("manualText").textContent = p.manual === "start" ? "Running by hand, back to auto in" : "Stopped by hand, back to auto in";
+    $("manualLeft").textContent = hi.dur(p.manual_left_s > 60 ? Math.ceil(p.manual_left_s / 60) * 60 : Math.max(0, p.manual_left_s));
+    const total = Number($("manualBar").dataset.total) || p.manual_left_s;
+    $("manualBar").dataset.total = Math.max(total, p.manual_left_s);
+    $("manualFill").style.width = `${Math.max(0, Math.min(100, 100 * p.manual_left_s / Math.max(total, 1)))}%`;
+  } else {
+    delete $("manualBar").dataset.total;
+  }
+
+  if (p.on && t.overheat) swipe.setText("Overheat: stop not allowed", "shut");
+  else swipe.setText(p.on ? `Slide to stop for ${fmtMin(minutes)}` : `Slide to start for ${fmtMin(minutes)}`, p.on ? "shut" : "");
+  $("autoChip").hidden = !manual;
+  document.querySelectorAll("[data-minutes]").forEach(b => { b.hidden = manual; });
+
+  if (!p.control_alive) hi.banner("Pump control is not responding. The controller will restart itself.");
+  else if (t.sensor_failed) hi.banner("The temperature sensor is not answering. The pump runs until it does; stop it by hand if the water is cold.");
+  else if (s.system.pending_verify) hi.banner("New firmware is being checked. It rolls back on its own if something is wrong.", true);
+  else hi.banner("");
+}
+
+const fmtMin = m => m % 60 === 0 ? `${m / 60} h` : `${m} min`;
+
+function renderSettings(s) {
+  const st = s.settings, sys = s.system;
+  $("startOut").textContent = `${st.start_c.toFixed(1)} °C`;
+  $("stopOut").textContent = `${st.stop_c.toFixed(1)} °C`;
+  $("criticalOut").textContent = `${st.critical_c.toFixed(1)} °C`;
+  const idle = s.pump.idle_s;
+  $("maintenanceNote").textContent = `Maintenance: after ${Math.round(st.maintenance_interval_s / 86400)} days without running, the pump turns for ${st.maintenance_run_s} s so it does not seize.`
+    + (s.pump.on ? "" : ` Idle for ${hi.dur(idle)}.`);
+  hi.rows($("deviceList"), [
+    ["Version", `${sys.version}`, `ESP-IDF ${sys.idf}, ${sys.partition}`],
+    ["Bootloader", sys.bootloader_idf === "unknown" ? "unknown" : `ESP-IDF ${sys.bootloader_idf}`, ""],
+    ["Running", hi.uptime(sys.uptime_s), sys.up_since ? `since ${sys.up_since}` : "clock not set yet"],
+    ["Wi-Fi", sys.wifi.connected ? `${sys.wifi.rssi} dBm` : "offline", sys.wifi.connected ? `channel ${sys.wifi.channel}` : ""],
+    ["Sensor", s.temp.sensor_failed ? "failed" : s.temp.c == null ? "no reading" : "ok",
+      s.temp.age_s >= 0 ? `last reading ${hi.dur(s.temp.age_s)} ago` : ""],
+    ["Memory free", `${sys.heap_kb.free} KB`, `lowest ${sys.heap_kb.min} KB`],
+    ["Last restart", sys.reset_reason, ""],
+  ]);
+  $("otaText").textContent = sys.ota_running ? "Checking for a new version…" : "Installs a new version if one is published";
+  $("otaBtn").disabled = sys.ota_running;
+}
+
+function render(s) {
+  renderLive(s);
+  if (tabs.current === "settings") renderSettings(s);
+  if (tabs.current === "history") {
+    put("hToday", "hTodayUnit", durParts(s.today.runtime_s, "pumping today"));
+    $("hStarts").textContent = s.today.starts;
+    put("hBoot", "hBootUnit", durParts(s.since_boot.runtime_s, "since restart"));
+  }
+}
+
+let eventsSeen = "";
+let historyAt = 0;
+async function refresh() {
+  clearTimeout(timer);
+  try {
+    state = await hi.api("/api/status");
+    render(state);
+    const p = state.pump, t = state.temp;
+    const marker = `${p.on}|${p.reason}|${p.manual}|${state.since_boot.starts}|${t.sensor_failed}|${t.overheat}`;
+    if (marker !== eventsSeen) { eventsSeen = marker; loadEvents(); }
+    if (tabs.current === "history" && Date.now() - historyAt > 60000) loadHistory();
+  } catch (e) {
+    if (e.status !== 401) { hi.banner("Can’t reach the controller. Retrying…"); hi.pill($("pill"), "bad", "Offline"); }
+  }
+  if (!document.hidden) timer = setTimeout(refresh, 3000);
+}
+
+function eventItem(e) {
+  const item = {ts: e.ts, what: "", small: e.temp_c == null ? "" : `water ${degU(e.temp_c)}`, amt: "", kind: ""};
+  const by = e.detail ? `, ${e.detail}` : "";
+  if (e.type === "pump") {
+    if (e.reason === "auto_hot") item.what = "Pump started";
+    else if (e.reason === "manual_on") { item.what = "Started by hand"; item.small += by; }
+    else if (e.reason === "manual_off") { item.what = "Stopped by hand"; item.small += by; item.kind = "warn"; }
+    else if (e.reason === "maintenance") item.what = "Maintenance run";
+    else if (e.reason === "sensor_fail") { item.what = "Pump on: sensor failure"; item.kind = "bad"; }
+    else if (e.reason === "overheat") { item.what = "Pump on: overheat"; item.kind = "bad"; }
+    else if (e.prev_reason === "maintenance") item.what = "Maintenance run done";
+    else if (e.prev_reason === "manual_on" || e.prev_reason === "manual_off") item.what = e.on ? "Back to auto, pump running" : "Back to auto, pump stopped";
+    else item.what = e.on ? "Pump running" : "Pump stopped";
+    item.amt = e.on ? "on" : "off";
+  } else if (e.type === "overheat") {
+    item.what = e.on ? "Overheat" : "Overheat over";
+    item.kind = e.on ? "bad" : "";
+  } else if (e.type === "sensor") {
+    item.what = e.on ? "Temperature sensor failed" : "Temperature sensor back";
+    item.kind = e.on ? "bad" : "";
+  } else {
+    item.what = e.detail === "overheat" ? "Manual stop cancelled by overheat" : "Back to auto";
+    item.kind = e.detail === "overheat" ? "warn" : "";
+  }
+  return item;
+}
+
+async function loadEvents() {
+  try {
+    const items = (await hi.api("/api/events")).events.map(eventItem);
+    $("eventsEmpty").hidden = items.length > 0;
+    hi.events($("events"), items);
+    hi.events($("latest"), items.slice(0, 3));
+    $("latestTitle").hidden = items.length === 0;
+  } catch (e) { /* the status banner already reports connectivity */ }
+}
+
+const SVG = "http://www.w3.org/2000/svg";
+const node = (tag, attrs, text) => {
+  const n = document.createElementNS(SVG, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (text != null) n.textContent = text;
+  return n;
+};
+
+async function loadHistory() {
+  historyAt = Date.now();
+  let h;
+  try { h = await hi.api("/api/history"); } catch (e) { return; }
+  const chart = $("chart");
+  chart.replaceChildren();
+  const vals = h.t.filter(v => v != null).map(v => v / 10);
+  $("chartNote").hidden = vals.length > 0;
+  if (!vals.length || !state) return;
+
+  const st = state.settings;
+  const W = 360, H = 170, L = 30, R = 6, T = 8, B = 22;
+  const span = 24 * 3600;
+  const lo = Math.floor(Math.min(...vals, st.stop_c) - 2), hi_ = Math.ceil(Math.max(...vals, st.critical_c) + 1);
+  const x = age => L + (W - L - R) * (1 - age / span);
+  const y = c => T + (H - T - B) * (1 - (c - lo) / (hi_ - lo));
+  const n = h.t.length;
+  const ageOf = i => h.newest_age_s + (n - 1 - i) * h.period_s;
+
+  for (const c of [lo, Math.round((lo + hi_) / 2), hi_]) {
+    chart.append(node("line", {class: "grid", x1: L, x2: W - R, y1: y(c), y2: y(c)}));
+    chart.append(node("text", {x: L - 5, y: y(c) + 4, "text-anchor": "end"}, `${c}°`));
+  }
+  for (const [age, label] of [[span, "24 h ago"], [span / 2, "12 h"], [0, "now"]]) {
+    chart.append(node("text", {x: x(age), y: H - 5, "text-anchor": age === span ? "start" : age === 0 ? "end" : "middle"}, label));
+  }
+  // Pump-on spans as shaded columns
+  for (let i = 0; i < n; i++) {
+    if (h.p[i] !== "1") continue;
+    let j = i;
+    while (j + 1 < n && h.p[j + 1] === "1") j++;
+    const x1 = x(ageOf(i) + h.period_s / 2), x2 = x(Math.max(0, ageOf(j) - h.period_s / 2));
+    if (x2 > L) chart.append(node("rect", {class: "on", x: Math.max(L, x1), y: T, width: Math.max(1.5, x2 - Math.max(L, x1)), height: H - T - B}));
+    i = j;
+  }
+  for (const [cls, c] of [["start", st.start_c], ["stop", st.stop_c], ["critical", st.critical_c]]) {
+    chart.append(node("line", {class: `guide ${cls}`, x1: L, x2: W - R, y1: y(c), y2: y(c)}));
+  }
+  // Temperature line, broken where readings are missing
+  let d = "";
+  let pen = false;
+  for (let i = 0; i < n; i++) {
+    const v = h.t[i];
+    const age = ageOf(i);
+    if (v == null || age > span) { pen = false; continue; }
+    d += `${pen ? "L" : "M"}${x(age).toFixed(1)} ${y(v / 10).toFixed(1)}`;
+    pen = true;
+  }
+  chart.append(node("path", {class: "line", d}));
+}
+
+async function command(stateName) {
+  busy = true;
+  swipe.flash("busy", stateName === "stop" ? "Stopping…" : stateName === "start" ? "Starting…" : "Switching to auto…", 0);
+  try {
+    state = await hi.api("/api/pump", stateName === "auto" ? {state: "auto"} : {state: stateName, minutes});
+    delete $("manualBar").dataset.total;
+    swipe.flash(null, "", 0);
+    render(state);
+    loadEvents();
+  } catch (e) {
+    const msg = e.message === "overheat" ? "Not stopped: water is over the critical temperature" : "Pump did not change";
+    swipe.flash("error", msg, 4000);
+    if (e.status !== 401) hi.banner(`${msg}${e.message === "overheat" ? "" : `: ${e.message}`}`);
+  }
+  busy = false;
+}
+
+async function saveSettings(patch) {
+  try { state = await hi.api("/api/settings", patch); render(state); renderSettings(state); }
+  catch (e) { hi.banner(`Settings not saved: ${e.message}`); }
+}
+
+document.querySelectorAll("[data-minutes]").forEach(b => b.addEventListener("click", () => {
+  minutes = Number(b.dataset.minutes);
+  document.querySelectorAll("[data-minutes]").forEach(o => o.setAttribute("aria-pressed", o === b));
+  if (state) render(state);
+}));
+$("autoChip").addEventListener("click", () => !busy && command("auto"));
+document.querySelectorAll("[data-set]").forEach(b => b.addEventListener("click", () => {
+  if (!state) return;
+  const key = b.dataset.set;
+  const next = Math.round((state.settings[key] + Number(b.dataset.step)) * 10) / 10;
+  $(`${key.replace("_c", "")}Out`).textContent = `${next.toFixed(1)} °C`;
+  saveSettings({[key]: next});
+}));
+$("otaBtn").addEventListener("click", () => hi.api("/api/ota", {}).then(refresh, e => hi.banner(`Update check not started: ${e.message}`)));
+$("rebootBtn").addEventListener("click", async () => {
+  if (!confirm("Restart the controller? The pump follows the temperature again within seconds.")) return;
+  try { await hi.api("/api/reboot", {}); hi.banner("Restarting…", true); setTimeout(refresh, 8000); }
+  catch (e) { hi.banner(`Restart failed: ${e.message}`); }
+});
+$("logoutBtn").addEventListener("click", async () => { try { await hi.api("/api/logout", {}); } finally { location.reload(); } });
+
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+
+(async () => {
+  try { await hi.session(); } catch (e) { hi.banner("Can’t reach the controller. Retrying…"); }
+  refresh();
+})();
+</script>
+</body>
+</html>

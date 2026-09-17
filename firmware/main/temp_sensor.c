@@ -1,32 +1,39 @@
-#include <esp_log.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "config/config.h"
+#include <math.h>
+#include "esp_log.h"
 #include "ds18x20.h"
 
-static const char *TAG = "TEMP_SENSOR";
+#include "config/config.h"
+#include "temp_sensor.h"
 
-onewire_addr_t sensor_addr = {0};
+static const char *TAG = "TEMP";
 
-void init_sensor() {
-    size_t num_devices = 0;
-    ds18x20_scan_devices(TEMP_SENSOR_IN_GPIO, &sensor_addr, 1, &num_devices);
-    TickType_t last_wake_time = xTaskGetTickCount();
-    while (num_devices < 1) {
-        ESP_LOGE(TAG, "There is no 1-Wire device available on the bus. Scanning...");
-        xTaskDelayUntil(&last_wake_time, (TEMP_SENSOR_SCAN_RETRY_S * 1000) / portTICK_PERIOD_MS);
-        ds18x20_scan_devices(TEMP_SENSOR_IN_GPIO, &sensor_addr, 1, &num_devices);
+static onewire_addr_t s_addr;
+static bool s_found;
+static uint8_t s_failures;     // a sensor swapped on the bus has a new address: rescan after a few failures
+
+bool temp_sensor_read(int16_t *temp_x10)
+{
+    if (!s_found) {
+        size_t found = 0;
+        if (ds18x20_scan_devices(GPIO_TEMP_SENSOR, &s_addr, 1, &found) != ESP_OK || found < 1) {
+            ESP_LOGW(TAG, "No DS18B20 on the 1-Wire bus");
+            return false;
+        }
+        s_found = true;
+        ESP_LOGW(TAG, "(not error) DS18B20 found");
     }
-    ESP_LOGI(TAG, "Found DS18B20 sensor.");
-}
-
-float read_temp() {
-    float temperature = INVALID_TEMPERATURE_INDICATOR;
-    const esp_err_t ret = ds18x20_measure_and_read(TEMP_SENSOR_IN_GPIO, sensor_addr, &temperature);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Error during conversion");
-        return INVALID_TEMPERATURE_INDICATOR;
+    float t = 0;
+    esp_err_t err = ds18x20_measure_and_read(GPIO_TEMP_SENSOR, s_addr, &t);
+    int value = err == ESP_OK ? (int) lroundf(t * 10) : 0;
+    if (err != ESP_OK || value == SENSOR_POWER_ON_VALUE_X10 || value < -550 || value > 1250) {
+        ESP_LOGW(TAG, "Read failed: %s (%.2f)", esp_err_to_name(err), t);
+        if (++s_failures >= SENSOR_FAIL_READS) {
+            s_found = false;
+            s_failures = 0;
+        }
+        return false;
     }
-    ESP_LOGI(TAG, "Read temperature: %.2f°C", temperature);
-    return temperature;
+    s_failures = 0;
+    *temp_x10 = (int16_t) value;
+    return true;
 }

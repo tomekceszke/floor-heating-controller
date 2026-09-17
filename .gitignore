@@ -16,3 +16,10 @@
 .worktrees/
 # ESP-IDF component manager
 managed_components/
+/firmware/build-*/
+/firmware/dependencies.local.lock
+/firmware/releases/
+/firmware/migrator/build/
+/firmware/migrator/blobs/
+/firmware/migrator/dependencies.local.lock
+/firmware/migrator/managed_components/
