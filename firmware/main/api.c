@@ -33,7 +33,7 @@ static const char *manual_name(ctl_manual_t m)
     return m == CTL_MANUAL_START ? "start" : m == CTL_MANUAL_STOP ? "stop" : "none";
 }
 
-static cJSON *status_json(void)
+cJSON *api_status_json(void)
 {
     control_status_t c;
     control_status(&c);
@@ -95,18 +95,28 @@ static bool admin_ok(httpd_req_t *req, esp_err_t *result)
     return false;
 }
 
+/* Reading also accepts the read-only value, so a permanent subscriber never needs the admin secret
+ * that carries OTA and reboot with it. */
+static bool admin_read_ok(httpd_req_t *req, esp_err_t *result)
+{
+    if (hi_auth_readonly_header_valid(req)) return true;
+    httpd_resp_set_status(req, "401 Unauthorized");
+    *result = httpd_resp_send(req, "", 0);
+    return false;
+}
+
 static esp_err_t status_handler(httpd_req_t *req)
 {
     esp_err_t result;
     if (!hi_httpd_guard(req, HI_GUARD_SESSION, NULL, &result)) return result;
-    return hi_httpd_send_json(req, "200 OK", status_json());
+    return hi_httpd_send_json(req, "200 OK", api_status_json());
 }
 
 static esp_err_t admin_status_handler(httpd_req_t *req)
 {
     esp_err_t result;
-    if (!admin_ok(req, &result)) return result;
-    return hi_httpd_send_json(req, "200 OK", status_json());
+    if (!admin_read_ok(req, &result)) return result;
+    return hi_httpd_send_json(req, "200 OK", api_status_json());
 }
 
 static esp_err_t events_handler(httpd_req_t *req)
@@ -198,7 +208,7 @@ static esp_err_t pump_command(httpd_req_t *req, const char *who)
     if (control_manual(manual, duration_s, who) == CONTROL_REFUSED_OVERHEAT) {
         return hi_httpd_send_error(req, "409 Conflict", "overheat");
     }
-    return hi_httpd_send_json(req, "200 OK", status_json());
+    return hi_httpd_send_json(req, "200 OK", api_status_json());
 }
 
 static esp_err_t pump_handler(httpd_req_t *req)
@@ -245,7 +255,7 @@ static esp_err_t settings_handler(httpd_req_t *req)
     ESP_LOGW(TAG, "(not error) Settings: start %d, stop %d, critical %d (0.1 C)", s.start_x10, s.stop_x10,
              s.critical_x10);
     if (err != ESP_OK) return hi_httpd_send_error(req, "500 Internal Server Error", "save_failed");
-    return hi_httpd_send_json(req, "200 OK", status_json());
+    return hi_httpd_send_json(req, "200 OK", api_status_json());
 }
 
 void api_start(void)

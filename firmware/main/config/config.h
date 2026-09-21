@@ -37,6 +37,12 @@
 #define HISTORY_PERIOD_S                60
 #define HISTORY_SAMPLES                 1440    // 24 h
 
+/* MQTT (hc-data; the retained state topic is what Homebridge reads. Failures never affect control) */
+#define MQTT_BROKER_URI                 "mqtt://192.168.11.16:1883"
+#define MQTT_TOPIC_PREFIX               "floorheating"
+#define MQTT_OUTBOX_LIMIT_BYTES         8192
+#define MQTT_STATE_PERIOD_S             60      // floorheating/<mac>/state refresh; a state change republishes at once
+
 /* OTA */
 #define OTA_FILE                        "floor-heating-controller.bin"
 #define OTA_URL                         "https://192.168.11.15:8070/" OTA_FILE

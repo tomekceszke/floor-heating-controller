@@ -6,6 +6,7 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 
+#include "hi_mqtt.h"
 #include "hi_notify.h"
 #include "hi_ntp.h"
 
@@ -109,6 +110,8 @@ void events_publish(const event_t *e)
     if (s_count < EVENTS_RING_SIZE) s_count++;
     portEXIT_CRITICAL(&s_mux);
     notify(e);
+    /* Only signals the state task, so this stays safe to call from the control task. */
+    hi_mqtt_state_publish_now();
 }
 
 size_t events_recent(event_t *out, size_t max)

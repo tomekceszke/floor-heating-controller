@@ -6,6 +6,7 @@
 #include "hi_auth.h"
 #include "hi_health.h"
 #include "hi_log.h"
+#include "hi_mqtt.h"
 #include "hi_notify.h"
 #include "hi_ntp.h"
 #include "hi_ota.h"
@@ -27,6 +28,8 @@ extern const char ota_cert_pem_start[] asm("_binary_ota_server_cert_15_pem_start
 /* credentials.h values may be obfuscated ("obf1:...", home-idf tools/obfuscate.py) */
 static char s_wifi_pass[65];
 static char s_admin_header[128];
+static char s_readonly_header[128];
+static char s_mqtt_pass[65];
 static char s_ntfy_topic[65];
 static char s_ntfy_error_topic[65];
 
@@ -34,6 +37,8 @@ static void reveal_credentials(void)
 {
     bool ok = hi_secret_reveal(WIFI_PASS, s_wifi_pass, sizeof(s_wifi_pass))
               & hi_secret_reveal(HEADER_AUTHORIZATION_VALUE, s_admin_header, sizeof(s_admin_header))
+              & hi_secret_reveal(HEADER_AUTHORIZATION_READONLY_VALUE, s_readonly_header, sizeof(s_readonly_header))
+              & hi_secret_reveal(MQTT_PASS, s_mqtt_pass, sizeof(s_mqtt_pass))
               & hi_secret_reveal(NTFY_TOPIC, s_ntfy_topic, sizeof(s_ntfy_topic))
               & hi_secret_reveal(NTFY_ERROR_TOPIC, s_ntfy_error_topic, sizeof(s_ntfy_error_topic));
     if (!ok) ESP_LOGE(TAG, "A credential in credentials.h is malformed");
@@ -87,8 +92,20 @@ void app_main(void)
         .password_salt_hex = AUTH_PASSWORD_SALT_HEX,
         .password_hash_hex = AUTH_PASSWORD_HASH_HEX,
         .admin_header_value = s_admin_header,
+        .readonly_header_value = s_readonly_header,
     });
     api_start();
+    /* After api_start(): the retained state document is the one the API serves. */
+    hi_mqtt_start(&(hi_mqtt_config_t) {
+        .broker_uri = MQTT_BROKER_URI,
+        .topic_prefix = MQTT_TOPIC_PREFIX,
+        .username = MQTT_USER,
+        .password = s_mqtt_pass,
+        .client_id_prefix = "fh",
+        .outbox_limit_bytes = MQTT_OUTBOX_LIMIT_BYTES,
+        .state_fn = api_status_json,
+        .state_period_s = MQTT_STATE_PERIOD_S,
+    });
     hi_health_start(&(hi_health_config_t) {
         .is_healthy = healthy,
         .log_stats = log_stats,

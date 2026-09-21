@@ -38,3 +38,12 @@ CONFIG_HTTPD_MAX_URI_LEN=512
 
 # esp_timer callbacks (WiFi reconnect, delayed restart) log through UDP
 CONFIG_ESP_TIMER_TASK_STACK_SIZE=4096
+
+# MQTT to hc-data: the retained state topic Homebridge reads. Small outbox, because unlike the heating
+# readings there is nothing here worth buffering across a long outage - only the current state matters.
+CONFIG_HOME_IDF_MQTT=y
+CONFIG_MQTT_PROTOCOL_311=y
+CONFIG_MQTT_USE_CUSTOM_CONFIG=y
+CONFIG_MQTT_BUFFER_SIZE=1024
+CONFIG_MQTT_TASK_STACK_SIZE=6144
+CONFIG_MQTT_OUTBOX_EXPIRED_TIMEOUT_MS=600000

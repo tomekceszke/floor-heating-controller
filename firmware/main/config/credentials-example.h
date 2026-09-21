@@ -20,3 +20,13 @@
  * NTFY_ERROR_TOPIC: overheat, sensor failure, unexpected resets and every error log line. */
 #define NTFY_TOPIC                  ""
 #define NTFY_ERROR_TOPIC            ""
+
+/* Mosquitto on hc-data; MQTT_PASS is MQTT_DEVICE_PASS from the broker's secrets.env.
+ * Empty leaves MQTT off, and with it the retained state topic Homebridge subscribes to. */
+#define MQTT_USER                   "floor-heating-controller"
+#define MQTT_PASS                   ""
+
+/* Authorization header accepted on read-only /admin endpoints (the Homebridge bridge). Unlike
+ * HEADER_AUTHORIZATION_VALUE this one cannot change anything, reboot or start an OTA. Empty means
+ * read-only clients have no way in. */
+#define HEADER_AUTHORIZATION_READONLY_VALUE  ""
