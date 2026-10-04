@@ -147,6 +147,36 @@ floor would then get boiler supply, up to that ceiling, and this controller cann
 heating-controller's **Floor supply** sensor `7100000008ece828` (presumably after the set; to confirm) can: an alert
 when it stays above ~50 °C would catch a failed head. Alert only, no pump decisions across devices.
 
+### Hydraulic layout and the pump conflict (owner, 2026-10-04)
+
+- Low-temperature system, max ~55 °C supply, one zone, one weather controller (FW100). Heat split roughly 60 %
+  radiators / 40 % floor. The 10 radiators hang on a manifold and have **no thermostatic or zone valves**.
+- The boiler supply splits at a **tee buried in the screed**: one branch to the radiator manifold, one to this pump
+  set (RPM-R, the variant with flowmeters; current datasheet:
+  <https://atusa.pl/wp-content/uploads/2020/12/Karta_rozdzielacz_RPM_R_2024.pdf>). **No hydraulic separator.**
+- The DS18B20 is a metal probe clamped to the copper supply pipe of the floor branch.
+- Observed: the set's pump and the boiler pump fight. Depending on the set's inlet/outlet valves either only the
+  radiators heat, or only the floor (and the radiators nearest the boiler). The working compromise: boiler pump on
+  its **highest** speed, Wilo RS 15/4 on its **lowest**, the set's inlet/outlet ball valves (5) about half open.
+- Without its pump the floor gets practically no flow: the set has no bypass, and the floor loops' resistance is far
+  above the radiators', so the boiler pump's flow goes to the radiators.
+
+Thresholds: **30/25 °C stays** (owner decision 2026-10-04, after discussing both directions). Higher thresholds
+would cut the floor's share further under the throttled compromise; lower ones would run the pump on water that is
+barely above room temperature.
+
+Options discussed for the conflict (none decided; the compromise works):
+- A hydraulic separator next to the boiler, before the pipes enter the screed, decouples the boiler pump from both
+  branches. Note: it then needs **its own pump for the radiator branch** too (on the secondary side the boiler pump no
+  longer reaches the radiators). Cerapur manuals list terminals for an external heating pump and, on ZSB models, an
+  external flow sensor for a hydraulic separator; check the exact options in the Cerapur Smart ZSB 22-3 C manual
+  before planning it.
+- Cheaper partial fixes: balance with a proper balancing valve on the floor branch instead of half-open ball valves
+  (ball valves are shut-off valves, not regulators). A check valve on the floor branch was suggested, but it does
+  not decouple the pumps.
+- Measure first: heatronic-controller will show the boiler's flow/return and pump modulation, heating-controller
+  already logs radiator and floor supply/return; together they show what each valve setting actually does.
+
 Possible upgrade, only if the data asks for it: replace head (2) with a proportional actuator (valves of this kind
 usually take M30×1.5; verify) and drive it from here with a floor heating curve, using the outdoor temperature that
 heating-controller and heatronic-controller already publish. That is a home-made equivalent of Junkers' IPM 1 module
