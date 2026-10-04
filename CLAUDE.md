@@ -136,13 +136,16 @@ longer hosted by the maker; the copy comes from the Web Archive).
   sets the bypass. Not weather-compensated; the floor only gets heat while the boiler heats for the radiators.
 - Pump: Wilo RS 15/4, switched by this controller's relay. Loop valves (9) have thermostatic inserts that take
   electric actuators (per-loop zoning would be possible).
-- Optional in the set: a **strap-on (contact) thermostat at 60 °C in series with the pump** that stops the pump on
-  overheat. Whether this set has it is **not checked yet**.
+- The optional strap-on 60 °C pump thermostat is **not installed** (owner, 2026-10-04).
+- The DS18B20 sits on the **boiler side, right before thermostatic valve (1)/head (2)** (owner, ~95 % sure,
+  2026-10-04). So it measures boiler supply, not what goes into the floor, and the overheat rule (pump on at
+  `critical`) is a heat dump while the thermostatic valve still limits the floor: keep it.
 
-Open question: where exactly the DS18B20 sits. On the boiler side of valve (1) the overheat rule (pump on at
-`critical`) is a heat dump while the thermostatic valve still limits the floor; on the floor side (after mixing), a
-failed head would make "pump on" push boiler water into the screed, and the rule should probably be the opposite
-(stop, as the optional 60 °C thermostat does). Check before changing anything in `control_logic.c`.
+What protects the floor from hot water: only the thermostatic head, plus the FW100's max flow temperature (~55–60 °C)
+as the ceiling of the boiler supply. A capillary head that loses its charge lets the valve spring open fully, so the
+floor would then get boiler supply, up to that ceiling, and this controller cannot see it (its sensor is upstream).
+heating-controller's **Floor supply** sensor `7100000008ece828` (presumably after the set; to confirm) can: an alert
+when it stays above ~50 °C would catch a failed head. Alert only, no pump decisions across devices.
 
 Possible upgrade, only if the data asks for it: replace head (2) with a proportional actuator (valves of this kind
 usually take M30×1.5; verify) and drive it from here with a floor heating curve, using the outdoor temperature that
