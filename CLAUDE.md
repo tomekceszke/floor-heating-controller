@@ -124,6 +124,16 @@ in a browser.
 - OTA server `https://192.168.11.15:8070`, file `floor-heating-controller.bin` (`~/apps/ota-server` on .15).
 - UDP logs `192.168.11.15:1344` (`nc -ul 1344`).
 
+## Related projects
+
+- `../heatronic-controller/` (started 2026-10-04): a read-only ESP32-C3 on the gas boiler's Heatronic 3 bus, next to
+  the FW100. The floor circuit is fed from the boiler supply through a tee and a mixer, so its data (requested and
+  actual flow temperature, burner modulation, DHW priority, outdoor temperature) explains when this pump starts and
+  stops; this controller's pump state and supply temperature in turn help read the boiler's behaviour. Its firmware
+  is planned on this repository as the template (home-idf app, pure decision code with host tests, build/release
+  tools).
+- `../heating-controller/`: DS18B20 history of the floor supply/return and the other circuits in hc-data.
+
 ## Rules
 
 - **Never** commit `credentials.h`, `certs/*`, `upload.sh`, `*.private.*`, `releases/`. Run `git check-ignore` before `git add`.
