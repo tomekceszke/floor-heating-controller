@@ -124,6 +124,31 @@ in a browser.
 - OTA server `https://192.168.11.15:8070`, file `floor-heating-controller.bin` (`~/apps/ota-server` on .15).
 - UDP logs `192.168.11.15:1344` (`nc -ul 1344`).
 
+## Hydraulics: the pump set
+
+Recorded 2026-10-04 (owner + manufacturer leaflet `docs/ulotka_zestaw_pompowy_2013.pdf`, Prandelli Polska, no
+longer hosted by the maker; the copy comes from the Web Archive).
+
+- The floor circuit (3 loops) is a **Prandelli RPM pump set** on a tee from the boiler supply (Junkers Cerapur Smart,
+  radiators on the same supply; boiler run by a Junkers FW100, max flow temperature set to ~55–60 °C).
+- Mixing is **thermostatic injection**: valve (1) on the supply bar, opened by a capillary head (2) with an immersion
+  sensor, holds a **fixed** floor supply temperature set on the head (leaflet: max 55 °C). Return regulating valve (7)
+  sets the bypass. Not weather-compensated; the floor only gets heat while the boiler heats for the radiators.
+- Pump: Wilo RS 15/4, switched by this controller's relay. Loop valves (9) have thermostatic inserts that take
+  electric actuators (per-loop zoning would be possible).
+- Optional in the set: a **strap-on (contact) thermostat at 60 °C in series with the pump** that stops the pump on
+  overheat. Whether this set has it is **not checked yet**.
+
+Open question: where exactly the DS18B20 sits. On the boiler side of valve (1) the overheat rule (pump on at
+`critical`) is a heat dump while the thermostatic valve still limits the floor; on the floor side (after mixing), a
+failed head would make "pump on" push boiler water into the screed, and the rule should probably be the opposite
+(stop, as the optional 60 °C thermostat does). Check before changing anything in `control_logic.c`.
+
+Possible upgrade, only if the data asks for it: replace head (2) with a proportional actuator (valves of this kind
+usually take M30×1.5; verify) and drive it from here with a floor heating curve, using the outdoor temperature that
+heating-controller and heatronic-controller already publish. That is a home-made equivalent of Junkers' IPM 1 module
+without the FW200 it would need (the FW100 runs one heating circuit only).
+
 ## Related projects
 
 - `../heatronic-controller/` (started 2026-10-04): a read-only ESP32-C3 on the gas boiler's Heatronic 3 bus, next to
