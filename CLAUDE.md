@@ -147,6 +147,11 @@ floor would then get boiler supply, up to that ceiling, and this controller cann
 heating-controller's **Floor supply** sensor `7100000008ece828` (presumably after the set; to confirm) can: an alert
 when it stays above ~50 °C would catch a failed head. Alert only, no pump decisions across devices.
 
+Boiler-side option, if a real cut-off is ever wanted: the boiler has terminals 8-9 for **TB1**, a 24 V temperature
+watchdog meant for floor heating connected to the boiler (bridged by default). Mounted on the floor supply after
+the set, it stops the burner **and** DHW when it trips (fault d3), so radiators go cold too. A cheaper target is the
+pump: a strap-on thermostat in series with the Wilo, as the set's optional 60 °C version does.
+
 ### Hydraulic layout and the pump conflict (owner, 2026-10-04)
 
 - Low-temperature system, max ~55 °C supply, one zone, one weather controller (FW100). Heat split roughly 60 %
@@ -167,10 +172,11 @@ barely above room temperature.
 
 Options discussed for the conflict (none decided; the compromise works):
 - A hydraulic separator next to the boiler, before the pipes enter the screed, decouples the boiler pump from both
-  branches. Note: it then needs **its own pump for the radiator branch** too (on the secondary side the boiler pump no
-  longer reaches the radiators). Cerapur manuals list terminals for an external heating pump and, on ZSB models, an
-  external flow sensor for a hydraulic separator; check the exact options in the Cerapur Smart ZSB 22-3 C manual
-  before planning it.
+  branches. It then needs **its own pump for the radiator branch** (on the secondary side the boiler pump no longer
+  reaches the radiators). What the Cerapur Smart ZSB 22-3 C offers for that (its service manual, pp. 10–11, 23, 32,
+  in heatronic-controller `docs/`): terminals NP-LP drive an external pump in an unmixed secondary circuit when
+  service function 5.E = 02 (it then runs continuously in heating mode); LZ-NZ drive an external primary pump. The
+  Smart has **no input for a separator flow sensor**. NP-LP is either that pump or a DHW circulation pump, not both.
 - Cheaper partial fixes: balance with a proper balancing valve on the floor branch instead of half-open ball valves
   (ball valves are shut-off valves, not regulators). A check valve on the floor branch was suggested, but it does
   not decouple the pumps.
