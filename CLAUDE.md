@@ -6,10 +6,11 @@ product: UI, notifications and history must never weaken it.**
 
 ## Status
 
-- **Production runs firmware 2.0.0** (2026-09-17 20:24, sha256 `d8d83cde…`, home-idf v0.1.12): migrated from the
-  legacy firmware over the air with the one-shot migrator, so the device now has the 5.4.2 bootloader, the water/gate
-  partition layout (ota_0 2M / ota_1 1.875M / coredump) and native rollback. Procedure and log in
-  `docs/IDF5_MIGRATION.md`; no spare-board rehearsal (owner decision, the relay board has USB for recovery).
+- **Production runs firmware 2.1.0** (OTA 2026-09-21 10:51, sha256 `9a0b7fb9…`, commit `2491373`: MQTT with a retained
+  state topic, read-only admin key; home-idf v0.1.13). 2.0.0 (2026-09-17 20:24, sha256 `d8d83cde…`, home-idf v0.1.12)
+  was migrated from the legacy firmware over the air with the one-shot migrator, so the device now has the 5.4.2
+  bootloader, the water/gate partition layout (ota_0 2M / ota_1 1.875M / coredump) and native rollback. Procedure and
+  log in `docs/IDF5_MIGRATION.md`; no spare-board rehearsal (owner decision, the relay board has USB for recovery).
 - Updates from now on: `tools/build_release.sh`, publish `releases/floor-heating-controller.bin` as
   `floor-heating-controller.bin` on the OTA server, `POST /admin/su` (or the Device tab).
 
