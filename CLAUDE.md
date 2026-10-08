@@ -156,8 +156,11 @@ pump: a strap-on thermostat in series with the Wilo, as the set's optional 60 °
 ### Hydraulic layout and the pump conflict (owner, 2026-10-04)
 
 - Low-temperature system, max ~55 °C supply, one zone, one weather controller (FW100). Heat split roughly 60 %
-  radiators / 40 % floor. The 10 radiators hang on a manifold and have **no thermostatic or zone valves**.
-- The boiler supply splits at a **tee buried in the screed**: one branch to the radiator manifold, one to this pump
+  radiators / 40 % floor. 14 radiators (11 active; garage, utility room and boiler room closed all year) on two
+  manifolds, ground floor in the garage next to this set, attic in the small bathroom, with **no thermostatic or zone
+  valves** (inventory 2026-10-08: `../heatronic-controller/docs/INSTALLATION.md`).
+- Boiler supply and return run in copper to a tee in the plaster at the boiler: up to the attic manifold, and down to
+  a **tee buried in the screed** with one branch to the ground floor radiator manifold, one to this pump
   set (RPM-R, the variant with flowmeters; current datasheet:
   <https://atusa.pl/wp-content/uploads/2020/12/Karta_rozdzielacz_RPM_R_2024.pdf>). **No hydraulic separator.**
 - The DS18B20 is a metal probe clamped to the copper supply pipe of the floor branch.
