@@ -135,6 +135,12 @@ longer hosted by the maker; the copy comes from the Web Archive).
 - Mixing is **thermostatic injection**: valve (1) on the supply bar, opened by a capillary head (2) with an immersion
   sensor, holds a **fixed** floor supply temperature set on the head (leaflet: max 55 °C). Return regulating valve (7)
   sets the bypass. Not weather-compensated; the floor only gets heat while the boiler heats for the radiators.
+- Flow path (leaflet diagram + owner's photo, 2026-10-13): boiler supply enters the **lower** bar (sticker
+  "ZASILANIE") at the right through valve (1); the loops return into the same lower bar through valves (9); the pump
+  on the left lifts that mix into the **upper** bar (sticker "POWRÓT"), which feeds the loops through the flow meters
+  (8) and lets the surplus out at the right through return regulating valve (7) to the boiler return. The stickers
+  name the boiler-side connections, not the loops: loop supply = pipes from the upper bar, loop return = pipes into
+  the lower bar. So the boiler gets back mixed floor-supply water (~29 °C measured), not the loops' return.
 - Pump: Wilo RS 15/4, switched by this controller's relay. Loop valves (9) have thermostatic inserts that take
   electric actuators (per-loop zoning would be possible).
 - The optional strap-on 60 °C pump thermostat is **not installed** (owner, 2026-10-04).
@@ -165,12 +171,18 @@ pump: a strap-on thermostat in series with the Wilo, as the set's optional 60 °
   a **tee buried in the screed** with one branch to the ground floor radiator manifold, one to this pump
   set (RPM-R, the variant with flowmeters; current datasheet:
   <https://atusa.pl/wp-content/uploads/2020/12/Karta_rozdzielacz_RPM_R_2024.pdf>). **No hydraulic separator.**
-- The DS18B20 is a metal probe clamped to the copper supply pipe of the floor branch.
+- The DS18B20 is a metal probe clamped to the copper supply pipe of the floor branch, before valve (1); heating-controller's
+  Floor supply `7100000008ece828` sits next to it (both read 21.9 / 22.1 °C idle on 2026-10-13). Pipes from the
+  boiler are soldered copper 22 mm OD, loops alu-pex 16. All sensor positions: `../heating-controller/CLAUDE.md`,
+  Sensor positions.
 - Observed: the set's pump and the boiler pump fight. Depending on the set's inlet/outlet valves either only the
   radiators heat, or only the floor (and the radiators nearest the boiler). The working compromise: boiler pump on
   its **highest** speed, Wilo RS 15/4 on its **lowest**, the set's inlet/outlet ball valves (5) about half open.
-- Without its pump the floor gets practically no flow: the set has no bypass, and the floor loops' resistance is far
-  above the radiators', so the boiler pump's flow goes to the radiators.
+- Without its pump the floor gets little flow, and it runs **backwards**: the boiler pump pushes supply through valve
+  (1) into the lower bar, through the loops from their return end into the upper bar and out through (7). Seen on the
+  hall loop at every heating start (2026-10-13 05:16–05:20: its return pipe +6 K while the supply pipe stayed cold)
+  until this pump starts at 30 °C; then the supply leads. The loops' resistance is far above the radiators', so most
+  of the boiler pump's flow goes to the radiators.
 
 Thresholds: **30/25 °C stays** (owner decision 2026-10-04, after discussing both directions). Higher thresholds
 would cut the floor's share further under the throttled compromise; lower ones would run the pump on water that is
