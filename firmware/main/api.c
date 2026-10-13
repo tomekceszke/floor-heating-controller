@@ -249,10 +249,9 @@ static void json_celsius(const cJSON *obj, const char *key, int16_t *field)
 }
 
 /* Partial {"start_c":30,"stop_c":25,"critical_c":45}, clamped. */
-static esp_err_t settings_handler(httpd_req_t *req)
+static esp_err_t apply_settings(httpd_req_t *req, const char *who)
 {
     esp_err_t result;
-    if (!hi_httpd_guard(req, HI_GUARD_MUTATION, NULL, &result)) return result;
     cJSON *body = hi_httpd_read_json(req, &result);
     if (body == NULL) return result;
     settings_t s;
@@ -264,10 +263,24 @@ static esp_err_t settings_handler(httpd_req_t *req)
 
     esp_err_t err = settings_set(&s);
     control_settings_changed();
-    ESP_LOGW(TAG, "(not error) Settings: start %d, stop %d, critical %d (0.1 C)", s.start_x10, s.stop_x10,
+    ESP_LOGW(TAG, "(not error) Settings by %s: start %d, stop %d, critical %d (0.1 C)", who, s.start_x10, s.stop_x10,
              s.critical_x10);
     if (err != ESP_OK) return hi_httpd_send_error(req, "500 Internal Server Error", "save_failed");
     return hi_httpd_send_json(req, "200 OK", api_status_json());
+}
+
+static esp_err_t settings_handler(httpd_req_t *req)
+{
+    esp_err_t result;
+    if (!hi_httpd_guard(req, HI_GUARD_MUTATION, NULL, &result)) return result;
+    return apply_settings(req, "user");
+}
+
+static esp_err_t admin_settings_handler(httpd_req_t *req)
+{
+    esp_err_t result;
+    if (!admin_ok(req, &result)) return result;
+    return apply_settings(req, "admin");
 }
 
 void api_start(void)
@@ -296,6 +309,7 @@ void api_start(void)
         {.uri = "/api/pump", .method = HTTP_POST, .handler = pump_handler},
         {.uri = "/api/settings", .method = HTTP_POST, .handler = settings_handler},
         {.uri = "/admin/pump", .method = HTTP_POST, .handler = admin_pump_handler},
+        {.uri = "/admin/settings", .method = HTTP_POST, .handler = admin_settings_handler},
         {.uri = "/admin/status", .method = HTTP_GET, .handler = admin_status_handler},
         {.uri = "/admin/history", .method = HTTP_GET, .handler = admin_history_handler},
     };
