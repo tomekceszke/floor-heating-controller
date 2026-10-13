@@ -190,7 +190,13 @@ pump: a strap-on thermostat in series with the Wilo, as the set's optional 60 °
   until this pump starts at 30 °C; then the supply leads. The loops' resistance is far above the radiators', so most
   of the boiler pump's flow goes to the radiators.
 
-Thresholds: **30/25 °C stays** (owner decision 2026-10-04, after discussing both directions). Higher thresholds
+Thresholds: **30/25 °C stays** (owner decision 2026-10-04, after discussing both directions). Revisited 2026-10-13
+after the FW100 curve went down (start point 30 °C since 2026-10-11): simulated on heating-controller's Floor supply
+(same pipe as this sensor) over 51 h, 30/25 runs the pump during only **68 %** of the burner's heating time (starts
+~3.6 min after the burner, 31 starts); the supply here peaks at 32.4 °C median, 30.5 °C at the 10th percentile, so on
+milder days the pump may not start at all. 28/24 gives 89 % (14 starts, pump on 22 of 51 h), 27/23 97 %. Proposed to
+the owner: 28/24; the cost is more floor pump time against the radiators (the FW100's room sensor is radiator-side).
+Decision pending. Higher thresholds
 would cut the floor's share further under the throttled compromise; lower ones would run the pump on water that is
 barely above room temperature.
 
