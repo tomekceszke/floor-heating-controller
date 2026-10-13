@@ -6,7 +6,8 @@ product: UI, notifications and history must never weaken it.**
 
 ## Status
 
-- **Production runs firmware 2.2.0** (OTA 2026-10-13 13:30, sha256 `accb3147…`, commit `15044f1`: `GET /admin/history`
+- **Production runs firmware 2.3.0** (OTA 2026-10-13 13:42, commit `abb43bc`: `POST /admin/settings` with the admin key).
+  2.2.0 (OTA 2026-10-13 13:30, sha256 `accb3147…`, commit `15044f1`: `GET /admin/history`
   with the read-only key; home-idf v0.1.13, built with `HOME_IDF_FROM_GIT=1 firmware/build.sh -B build-git build`).
   2.1.0 (OTA 2026-09-21 10:51, sha256 `9a0b7fb9…`, commit `2491373`: MQTT with a retained
   state topic, read-only admin key; home-idf v0.1.13). 2.0.0 (2026-09-17 20:24, sha256 `d8d83cde…`, home-idf v0.1.12)
@@ -107,6 +108,7 @@ Common routes come from home-idf: `/`, `/api/session`, `/api/login`, `/api/logou
 | POST | `/api/pump` | mutation | `{state:"start"\|"stop", minutes}` or `{state:"auto"}`; 409 `overheat` for a stop while overheated |
 | POST | `/api/settings` | mutation | partial `{start_c, stop_c, critical_c}`, clamped |
 | POST | `/admin/pump` | `Authorization` header | same body as `/api/pump` |
+| POST | `/admin/settings` | `Authorization` header (admin) | same body as `/api/settings` (2.3.0) |
 | GET | `/admin/status` | `Authorization` header | same as `/api/status` |
 | GET | `/admin/history` | `Authorization` header (read-only or admin) | same as `/api/history` (2.2.0) |
 
@@ -190,13 +192,13 @@ pump: a strap-on thermostat in series with the Wilo, as the set's optional 60 °
   until this pump starts at 30 °C; then the supply leads. The loops' resistance is far above the radiators', so most
   of the boiler pump's flow goes to the radiators.
 
-Thresholds: **30/25 °C stays** (owner decision 2026-10-04, after discussing both directions). Revisited 2026-10-13
+Thresholds: 30/25 °C until 2026-10-13 (owner decision 2026-10-04, after discussing both directions). Revisited 2026-10-13
 after the FW100 curve went down (start point 30 °C since 2026-10-11): simulated on heating-controller's Floor supply
 (same pipe as this sensor) over 51 h, 30/25 runs the pump during only **68 %** of the burner's heating time (starts
 ~3.6 min after the burner, 31 starts); the supply here peaks at 32.4 °C median, 30.5 °C at the 10th percentile, so on
 milder days the pump may not start at all. 28/24 gives 89 % (14 starts, pump on 22 of 51 h), 27/23 97 %. Proposed to
 the owner: 28/24; the cost is more floor pump time against the radiators (the FW100's room sensor is radiator-side).
-Decision pending. Higher thresholds
+**Set to 28/24 °C on 2026-10-13 13:43** (owner's decision; critical 45 °C unchanged), through `/admin/settings`. Higher thresholds
 would cut the floor's share further under the throttled compromise; lower ones would run the pump on water that is
 barely above room temperature.
 
