@@ -65,12 +65,26 @@ dependencies:
     - esp32s2
     - esp32s3
     version: 1.1.0
+  home-idf:
+    component_hash: 9cf872cc759d3c859d6f340de27b7a4340ddfbc74d965d153233d5d3382c43f8
+    dependencies:
+    - name: idf
+      version: '>=5.4'
+    source:
+      git: https://github.com/tomekceszke/home-idf.git
+      path: .
+      type: git
+    targets:
+    - esp32
+    version: ab636aa41a85ad4cb99c7f2f6e56358db8a2da1c
   idf:
     source:
       type: idf
     version: 5.4.2
 direct_dependencies:
 - esp-idf-lib/ds18x20
-manifest_hash: ac45fadbc499a9f6faf63fc5d8bfdabb4379e6182caade730a73b90ed1f71425
+- home-idf
+- idf
+manifest_hash: 17f5491669317f22845bda899246207c5be1963d0de5b3fd01d42c554dcb3b15
 target: esp32
 version: 2.0.0

@@ -146,10 +146,8 @@ static esp_err_t events_handler(httpd_req_t *req)
 }
 
 /* {"period_s":60,"newest":<unix or 0>,"newest_age_s":12,"t":[312,null,...],"p":"0110..."}, oldest first, streamed. */
-static esp_err_t history_handler(httpd_req_t *req)
+static esp_err_t send_history(httpd_req_t *req)
 {
-    esp_err_t result;
-    if (!hi_httpd_guard(req, HI_GUARD_SESSION, NULL, &result)) return result;
     static int16_t temps[HISTORY_SAMPLES];
     static bool pump[HISTORY_SAMPLES];
     int64_t newest_mono_s = 0;
@@ -181,6 +179,20 @@ static esp_err_t history_handler(httpd_req_t *req)
     len += snprintf(buf + len, sizeof(buf) - len, "\"}");
     if (httpd_resp_send_chunk(req, buf, len) != ESP_OK) return ESP_FAIL;
     return httpd_resp_send_chunk(req, NULL, 0);
+}
+
+static esp_err_t history_handler(httpd_req_t *req)
+{
+    esp_err_t result;
+    if (!hi_httpd_guard(req, HI_GUARD_SESSION, NULL, &result)) return result;
+    return send_history(req);
+}
+
+static esp_err_t admin_history_handler(httpd_req_t *req)
+{
+    esp_err_t result;
+    if (!admin_read_ok(req, &result)) return result;
+    return send_history(req);
 }
 
 /* {"state":"start"|"stop"|"auto","minutes":60} */
@@ -285,6 +297,7 @@ void api_start(void)
         {.uri = "/api/settings", .method = HTTP_POST, .handler = settings_handler},
         {.uri = "/admin/pump", .method = HTTP_POST, .handler = admin_pump_handler},
         {.uri = "/admin/status", .method = HTTP_GET, .handler = admin_status_handler},
+        {.uri = "/admin/history", .method = HTTP_GET, .handler = admin_history_handler},
     };
     for (size_t i = 0; i < sizeof(routes) / sizeof(routes[0]); i++) {
         hi_httpd_register(&routes[i]);
