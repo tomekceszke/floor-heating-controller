@@ -1,0 +1,4 @@
+# floor-heating-controller (merged into /etc/mosquitto/acl by hc-mosquitto-assemble)
+# The device's own user (floor-heating-controller, write floorheating/+/state) lives in homekit.acl.
+user fh-ingest
+topic read floorheating/#

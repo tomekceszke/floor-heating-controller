@@ -1,0 +1,20 @@
+[Unit]
+Description=floor-heating-controller MQTT -> PostgreSQL ingest
+After=network-online.target mosquitto.service postgresql.service
+Wants=network-online.target
+
+[Service]
+User=fh_ingest
+Group=fh_ingest
+EnvironmentFile=/etc/fh-server/secrets.env
+Environment=PG_DSN=dbname=floorheating
+ExecStart=/opt/fh-server/venv/bin/python /opt/fh-server/ingest/fh_ingest.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -6,11 +6,15 @@ product: UI, notifications and history must never weaken it.**
 
 ## Status
 
-- **Production runs firmware 2.1.0** (OTA 2026-09-21 10:51, sha256 `9a0b7fb9…`, commit `2491373`: MQTT with a retained
+- **Production runs firmware 2.2.0** (OTA 2026-10-13 13:30, sha256 `accb3147…`, commit `15044f1`: `GET /admin/history`
+  with the read-only key; home-idf v0.1.13, built with `HOME_IDF_FROM_GIT=1 firmware/build.sh -B build-git build`).
+  2.1.0 (OTA 2026-09-21 10:51, sha256 `9a0b7fb9…`, commit `2491373`: MQTT with a retained
   state topic, read-only admin key; home-idf v0.1.13). 2.0.0 (2026-09-17 20:24, sha256 `d8d83cde…`, home-idf v0.1.12)
   was migrated from the legacy firmware over the air with the one-shot migrator, so the device now has the 5.4.2
   bootloader, the water/gate partition layout (ota_0 2M / ota_1 1.875M / coredump) and native rollback. Procedure and
   log in `docs/IDF5_MIGRATION.md`; no spare-board rehearsal (owner decision, the relay board has USB for recovery).
+- **History in hc-data** since 2026-10-13: `server/` (`fh-ingest`, database `floorheating`, table `sample`: temperature,
+  pump, reason, thresholds every 60 s and on each pump change; `server/README.md`).
 - Updates from now on: `tools/build_release.sh`, publish `releases/floor-heating-controller.bin` as
   `floor-heating-controller.bin` on the OTA server, `POST /admin/su` (or the Device tab).
 
@@ -77,6 +81,7 @@ main/
 web/               app.html (Live / History / Settings on the home-idf app shell), manifest, icon
 test/              host tests for control_logic
 migrator/          one-shot legacy → 2.x image (home-idf hi_migrator), keeps the pump on while it runs
+server/            hc-data backend: fh-ingest (MQTT state → PostgreSQL floorheating), install/deploy, tests
 ```
 
 ### Notifications (ntfy, two topics as in the other controllers)
@@ -103,6 +108,7 @@ Common routes come from home-idf: `/`, `/api/session`, `/api/login`, `/api/logou
 | POST | `/api/settings` | mutation | partial `{start_c, stop_c, critical_c}`, clamped |
 | POST | `/admin/pump` | `Authorization` header | same body as `/api/pump` |
 | GET | `/admin/status` | `Authorization` header | same as `/api/status` |
+| GET | `/admin/history` | `Authorization` header (read-only or admin) | same as `/api/history` (2.2.0) |
 
 The legacy `/api/toggle-pump`, `/api/is-pump-running` and unauthenticated `/api/status` are gone (nothing used them).
 

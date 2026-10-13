@@ -24,3 +24,4 @@ managed_components/
 /migrator/dependencies.local.lock
 /migrator/managed_components/
 __pycache__/
+/server/secrets.env
