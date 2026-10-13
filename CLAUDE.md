@@ -145,8 +145,10 @@ longer hosted by the maker; the copy comes from the Web Archive).
 What protects the floor from hot water: only the thermostatic head, plus the FW100's max flow temperature (~55–60 °C)
 as the ceiling of the boiler supply. A capillary head that loses its charge lets the valve spring open fully, so the
 floor would then get boiler supply, up to that ceiling, and this controller cannot see it (its sensor is upstream).
-heating-controller's **Floor supply** sensor `7100000008ece828` (presumably after the set; to confirm) can: an alert
-when it stays above ~50 °C would catch a failed head. Alert only, no pump decisions across devices.
+heating-controller's **Floor supply** sensor `7100000008ece828` cannot either: it sits next to this one, before the
+valve (owner, 2026-10-13). The only sensors after the mixing are the hall loop pair at the manifold, on alu-pex 16:
+**Hallway floor supply** `77041469f284ff28` (reads ~2–3 K low, bare strap-on on pex); an alert when it stays above
+~45 °C would catch a failed head. Alert only, no pump decisions across devices.
 
 Boiler-side option, if a real cut-off is ever wanted: the boiler has terminals 8-9 for **TB1**, a 24 V temperature
 watchdog meant for floor heating connected to the boiler (bridged by default). Mounted on the floor supply after
