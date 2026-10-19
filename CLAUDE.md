@@ -159,7 +159,7 @@ longer hosted by the maker; the copy comes from the Web Archive).
 What protects the floor from hot water: only the thermostatic head, plus the FW100's max flow temperature (~55–60 °C)
 as the ceiling of the boiler supply. A capillary head that loses its charge lets the valve spring open fully, so the
 floor would then get boiler supply, up to that ceiling, and this controller cannot see it (its sensor is upstream).
-heating-controller's **Floor supply** sensor `7100000008ece828` cannot either: it sits next to this one, before the
+sensors-controller's **Floor supply** sensor `7100000008ece828` cannot either: it sits next to this one, before the
 valve (owner, 2026-10-13). The only sensors after the mixing are the hall loop pair at the manifold, on alu-pex 16:
 **Hallway floor supply** `77041469f284ff28` (reads ~2–3 K low, bare strap-on on pex); an alert when it stays above
 ~45 °C would catch a failed head. Alert only, no pump decisions across devices.
@@ -179,9 +179,9 @@ pump: a strap-on thermostat in series with the Wilo, as the set's optional 60 °
   a **tee buried in the screed** with one branch to the ground floor radiator manifold, one to this pump
   set (RPM-R, the variant with flowmeters; current datasheet:
   <https://atusa.pl/wp-content/uploads/2020/12/Karta_rozdzielacz_RPM_R_2024.pdf>). **No hydraulic separator.**
-- The DS18B20 is a metal probe clamped to the copper supply pipe of the floor branch, before valve (1); heating-controller's
+- The DS18B20 is a metal probe clamped to the copper supply pipe of the floor branch, before valve (1); sensors-controller's
   Floor supply `7100000008ece828` sits next to it (both read 21.9 / 22.1 °C idle on 2026-10-13). Pipes from the
-  boiler are soldered copper 22 mm OD, loops alu-pex 16. All sensor positions: `../heating-controller/CLAUDE.md`,
+  boiler are soldered copper 22 mm OD, loops alu-pex 16. All sensor positions: `../sensors-controller/CLAUDE.md`,
   Sensor positions.
 - Observed: the set's pump and the boiler pump fight. Depending on the set's inlet/outlet valves either only the
   radiators heat, or only the floor (and the radiators nearest the boiler). The working compromise: boiler pump on
@@ -193,7 +193,7 @@ pump: a strap-on thermostat in series with the Wilo, as the set's optional 60 °
   of the boiler pump's flow goes to the radiators.
 
 Thresholds: 30/25 °C until 2026-10-13 (owner decision 2026-10-04, after discussing both directions). Revisited 2026-10-13
-after the FW100 curve went down (start point 30 °C since 2026-10-11): simulated on heating-controller's Floor supply
+after the FW100 curve went down (start point 30 °C since 2026-10-11): simulated on sensors-controller's Floor supply
 (same pipe as this sensor) over 51 h, 30/25 runs the pump during only **68 %** of the burner's heating time (starts
 ~3.6 min after the burner, 31 starts); the supply here peaks at 32.4 °C median, 30.5 °C at the 10th percentile, so on
 milder days the pump may not start at all. 28/24 gives 89 % (14 starts, pump on 22 of 51 h), 27/23 97 %. Proposed to
@@ -212,12 +212,12 @@ Options discussed for the conflict (none decided; the compromise works):
 - Cheaper partial fixes: balance with a proper balancing valve on the floor branch instead of half-open ball valves
   (ball valves are shut-off valves, not regulators). A check valve on the floor branch was suggested, but it does
   not decouple the pumps.
-- Measure first: heatronic-controller will show the boiler's flow/return and pump modulation, heating-controller
+- Measure first: heatronic-controller will show the boiler's flow/return and pump modulation, sensors-controller
   already logs radiator and floor supply/return; together they show what each valve setting actually does.
 
 Possible upgrade, only if the data asks for it: replace head (2) with a proportional actuator (valves of this kind
 usually take M30×1.5; verify) and drive it from here with a floor heating curve, using the outdoor temperature that
-heating-controller and heatronic-controller already publish. That is a home-made equivalent of Junkers' IPM 1 module
+sensors-controller and heatronic-controller already publish. That is a home-made equivalent of Junkers' IPM 1 module
 without the FW200 it would need (the FW100 runs one heating circuit only).
 
 ## Related projects
@@ -228,7 +228,7 @@ without the FW200 it would need (the FW100 runs one heating circuit only).
   stops; this controller's pump state and supply temperature in turn help read the boiler's behaviour. Its firmware
   is planned on this repository as the template (home-idf app, pure decision code with host tests, build/release
   tools).
-- `../heating-controller/`: DS18B20 history of the floor supply/return and the other circuits in hc-data.
+- `../sensors-controller/`: DS18B20 history of the floor supply/return and the other circuits in hc-data.
 
 ## Rules
 

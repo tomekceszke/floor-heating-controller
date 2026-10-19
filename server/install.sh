@@ -35,6 +35,6 @@ systemctl restart fh-ingest
 
 echo "== status"
 systemctl is-active mosquitto postgresql fh-ingest hcdata-pg-backup@floorheating.timer
-for unit in hc-ingest wc-ingest mc-ingest ac-ingest; do
+for unit in sc-ingest wc-ingest mc-ingest ac-ingest; do
     systemctl is-active -q "$unit" 2>/dev/null && echo "($unit still running)" || echo "WARNING: $unit not active"
 done
