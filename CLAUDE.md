@@ -1,5 +1,7 @@
 # floor-heating-controller
 
+LAN addresses appear as placeholders such as `{ota-host}`; their values are in `CLAUDE.local.md` (not in git).
+
 ESP32 controller for the floor heating circulation pump: a DS18B20 on the supply pipe, a relay for the pump. The pump
 runs above the start threshold and stops below the stop threshold. In production for 2+ years. **Pump control is the
 product: UI, notifications and history must never weaken it.**
@@ -39,7 +41,7 @@ product: UI, notifications and history must never weaken it.**
 |---|---|
 | Module | ESP32-WROOM-32E, 4 MB flash (DIO, 40 MHz) |
 | PCB | ESP32_Relay_AC X1 V1.1 (303E32AC111), CP2102 USB-UART (`/dev/cu.usbserial-0001`) |
-| Production | `192.168.11.247`, MAC `98:CD:AC:4E:75:54` |
+| Production | `{fh-ip}`, MAC `{fh-mac}` |
 
 | GPIO | Function |
 |---|---|
@@ -117,7 +119,7 @@ The legacy `/api/toggle-pump`, `/api/is-pump-running` and unauthenticated `/api/
 ### UI work
 
 ```sh
-../home-idf/tools/dev_proxy.py 192.168.11.247 --page firmware/web/app.html --name fh-controller
+../home-idf/tools/dev_proxy.py {fh-ip} --page firmware/web/app.html --name fh-controller
 ```
 Same layout as water and gate (shared-main-view decision 2026-09-16): wordmark + status, headline, three numbers
 (°C water, time in the current state, pumping today), main view (heat source → thermometer → pump → floor loop),
@@ -130,8 +132,8 @@ in a browser.
 
 ## Infrastructure
 
-- OTA server `https://192.168.11.15:8070`, file `floor-heating-controller.bin` (`~/apps/ota-server` on .15).
-- UDP logs `192.168.11.15:1344` (`nc -ul 1344`).
+- OTA server `https://{ota-host}:8070`, file `floor-heating-controller.bin` (`~/apps/ota-server` on {ota-host}).
+- UDP logs `{ota-host}:1344` (`nc -ul 1344`).
 
 ## Hydraulics: the pump set
 

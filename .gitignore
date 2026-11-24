@@ -25,3 +25,4 @@ managed_components/
 /migrator/managed_components/
 __pycache__/
 /server/secrets.env
+CLAUDE.local.md

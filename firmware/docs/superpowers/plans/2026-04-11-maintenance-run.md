@@ -481,7 +481,7 @@ Also verify ntfy.sh receives "Weekly pump exercise run started".
 - [ ] **Step 4: Verify /api/status response**
 
 ```bash
-curl http://192.168.11.241/api/status
+curl http://{fh-old-ip}/api/status
 ```
 
 Expected (maintenance not running):
